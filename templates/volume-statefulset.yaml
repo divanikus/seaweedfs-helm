@@ -157,7 +157,7 @@ spec:
               {{- if .Values.master.enabled }}
               -mserver={{ range $index := until (.Values.master.replicas | int) }}${SEAWEEDFS_FULLNAME}-master-{{ $index }}.${SEAWEEDFS_FULLNAME}-master.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.master.replicas | int) 1) }},{{ end }} \{{ end }}
               {{- end }}
-              -ip=${POD_NAME}.${SEAWEEDFS_FULLNAME}-volume.{{ .Release.Namespace }}
+              -ip=${POD_IP}
           volumeMounts:
             {{- if or (not $volume.persistence) (not $volume.persistence.enabled) }}
             - name: data
