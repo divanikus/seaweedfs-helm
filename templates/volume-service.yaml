@@ -4,6 +4,11 @@ kind: Service
 metadata:
   name: {{ template "seaweedfs.name" . }}-volume
   namespace: {{ $.Release.Namespace }}
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+    {{- with .Values.commonAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   labels:
    {{- include "seaweedfs.labels" . | nindent 4 }}
     app.kubernetes.io/component: volume
