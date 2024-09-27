@@ -542,7 +542,7 @@ server:
     # local on disk, mostly for simple single-machine setup, fairly scalable
     # faster than previous leveldb, recommended.
     enabled = true
-    dir = "/data"
+    dir = "/data/filer"
 
   s3:
     enabled: true
