@@ -161,6 +161,11 @@ spec:
               mountPath: /etc/seaweedfs/filer.toml
               subPath: filer.toml
             {{- end }}
+            {{- if .Values.server.s3.auth.enabled }}
+            - name: config-users
+              mountPath: /etc/seaweedfs/s3/
+              readOnly: true
+            {{- end }}
             {{- if .Values.security.enabled }}
             - name: security-config
               readOnly: true
@@ -290,6 +295,16 @@ spec:
           secret:
             secretName: {{ template "seaweedfs.name" . }}-client-cert
         {{- end }}
+        {{- end }}
+        {{- if and .Values.server.s3.enabled .Values.server.s3.auth.enabled }}
+        - name: config-users
+          secret:
+            defaultMode: 420
+            {{- if .Values.server.s3.auth.existingConfigSecret }}
+            secretName: {{ .Values.server.s3.auth.existingConfigSecret }}
+            {{- else }}
+            secretName: {{ template "seaweedfs.name" . }}-s3-secret
+            {{- end }}
         {{- end }}
         {{- if .Values.server.extraVolumes }}
         {{- include "common.tplvalues.render" (dict "value" .Values.server.extraVolumes "context" $) | nindent 8 }}
