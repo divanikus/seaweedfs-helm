@@ -287,7 +287,7 @@ filer:
           - Read
         - name: anvAdmin
           credentials:
-            accessKey: ""
+          - accessKey: ""
             secretKey: ""
           actions:
           - Admin
@@ -295,7 +295,7 @@ filer:
           - Write
         - name: anvReadOnly
           credentials:
-            accessKey: ""
+          - accessKey: ""
             secretKey: ""
           actions:
           - Read
@@ -432,7 +432,7 @@ s3:
         - Read
       - name: anvAdmin
         credentials:
-          accessKey: ""
+        - accessKey: ""
           secretKey: ""
         actions:
         - Admin
@@ -440,7 +440,7 @@ s3:
         - Write
       - name: anvReadOnly
         credentials:
-          accessKey: ""
+        - accessKey: ""
           secretKey: ""
         actions:
         - Read
@@ -560,7 +560,7 @@ server:
           - Read
         - name: anvAdmin
           credentials:
-            accessKey: ""
+          - accessKey: ""
             secretKey: ""
           actions:
           - Admin
@@ -568,7 +568,7 @@ server:
           - Write
         - name: anvReadOnly
           credentials:
-            accessKey: ""
+          - accessKey: ""
             secretKey: ""
           actions:
           - Read
