@@ -136,6 +136,9 @@ spec:
               -s3.key.file=/usr/local/share/ca-certificates/client/tls.key \
               {{- end }}
               {{- end }}
+              {{- if .Values.server.s3.auth.enabled }}
+              -s3.config=/etc/seaweedfs/s3/config.json \
+              {{- end }}
               -ip=${POD_NAME}.${SEAWEEDFS_FULLNAME}-server.{{ .Release.Namespace }} \
               {{- if .Values.master.enabled }}
               -master.peers={{ range $index := until (.Values.master.replicas | int) }}${SEAWEEDFS_FULLNAME}-master-{{ $index }}.${SEAWEEDFS_FULLNAME}-master.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.master.replicas | int) 1) }},{{ end }}{{ end }}
