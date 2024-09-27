@@ -524,9 +524,9 @@ server:
   replicas: 1
   args:
     ip.bind: "0.0.0.0"
-    volumePreallocate: false
-    volumeSizeLimitMB: 1000
-    defaultReplication: "000"
+    master.volumePreallocate: false
+    master.volumeSizeLimitMB: 1000
+    master.defaultReplication: "000"
 
   master: |-
     # Enter any extra configuration for master.toml here.
