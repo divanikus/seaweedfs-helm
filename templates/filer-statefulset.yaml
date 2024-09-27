@@ -307,7 +307,9 @@ spec:
         {{- range .Values.filer.persistence.accessModes }}
           - {{ . | quote }}
         {{- end }}
+        {{- if .Values.filer.persistence.storageClass }}
         storageClassName: {{ .Values.filer.persistence.storageClass | quote }}
+        {{- end }}
         resources:
           requests:
             storage: {{ .Values.filer.persistence.size }}
@@ -328,7 +330,9 @@ spec:
         {{- range .Values.filer.logs.persistence.accessModes }}
           - {{ . | quote }}
         {{- end }}
+        {{- if .Values.filer.logs.persistence.storageClass }}
         storageClassName: {{ .Values.filer.logs.persistence.storageClass | quote }}
+        {{- end }}
         resources:
           requests:
             storage: {{ .Values.filer.logs.persistence.size }}

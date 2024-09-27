@@ -321,7 +321,9 @@ spec:
         {{- range $disk.accessModes }}
           - {{ . | quote }}
         {{- end }}
+        {{- if $disk.storageClass }}
         storageClassName: {{ $disk.storageClass | quote }}
+        {{- end }}
         resources:
           requests:
             storage: {{ $disk.size }}
@@ -343,7 +345,9 @@ spec:
         {{- range $volume.persistence.idx.accessModes }}
           - {{ . | quote }}
         {{- end }}
+        {{- if $volume.persistence.idx.storageClass }}
         storageClassName: {{ $volume.persistence.idx.storageClass | quote }}
+        {{- end }}
         resources:
           requests:
             storage: {{ $volume.persistence.idx.size }}
@@ -364,7 +368,9 @@ spec:
         {{- range $logs.persistence.accessModes }}
           - {{ . | quote }}
         {{- end }}
+        {{- if $logs.persistence.storageClass }}
         storageClassName: {{ $logs.persistence.storageClass | quote }}
+        {{- end }}
         resources:
           requests:
             storage: {{ $logs.persistence.size }}

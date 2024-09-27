@@ -260,7 +260,9 @@ spec:
         {{- range .Values.master.persistence.accessModes }}
           - {{ . | quote }}
         {{- end }}
+        {{- if .Values.master.persistence.storageClass }}
         storageClassName: {{ .Values.master.persistence.storageClass | quote }}
+        {{- end }}
         resources:
           requests:
             storage: {{ .Values.master.persistence.size }}
@@ -281,7 +283,9 @@ spec:
         {{- range .Values.master.logs.persistence.accessModes }}
           - {{ . | quote }}
         {{- end }}
+        {{- if .Values.master.logs.persistence.storageClass }}
         storageClassName: {{ .Values.master.logs.persistence.storageClass | quote }}
+        {{- end }}
         resources:
           requests:
             storage: {{ .Values.master.logs.persistence.size }}

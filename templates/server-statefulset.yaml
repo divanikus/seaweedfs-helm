@@ -189,9 +189,9 @@ spec:
             {{- end }}
           ports:
             - containerPort: 9333
-              name: swfs-server
+              name: swfs-srv
             - containerPort: 19333
-              name: swfs-server-grpc
+              name: swfs-srv-grpc
             {{- if .Values.server.filer }}
             - containerPort: 8888
               name: swfs-filer
@@ -313,7 +313,9 @@ spec:
         {{- range .Values.server.persistence.accessModes }}
           - {{ . | quote }}
         {{- end }}
+        {{- if .Values.server.persistence.storageClass }}
         storageClassName: {{ .Values.server.persistence.storageClass | quote }}
+        {{- end }}
         resources:
           requests:
             storage: {{ .Values.server.persistence.size }}
@@ -334,7 +336,9 @@ spec:
         {{- range .Values.server.logs.persistence.accessModes }}
           - {{ . | quote }}
         {{- end }}
+        {{- if .Values.server.logs.persistence.storageClass }}
         storageClassName: {{ .Values.server.logs.persistence.storageClass | quote }}
+        {{- end }}
         resources:
           requests:
             storage: {{ .Values.server.logs.persistence.size }}

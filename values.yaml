@@ -549,10 +549,6 @@ server:
     args:
       allowEmptyFolder: false
 
-    createBuckets:
-    - just
-    - test
-
     auth: 
       enabled: true
       existingConfigSecret: ""
@@ -601,7 +597,7 @@ server:
     logToStdErr: true
 
     persistence:
-      enabled: true
+      enabled: false
       existingClaim: ""
       storageClass: ""
       accessModes:

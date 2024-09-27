@@ -271,7 +271,9 @@ spec:
         {{- range .Values.s3.logs.persistence.accessModes }}
           - {{ . | quote }}
         {{- end }}
+        {{- if .Values.s3.logs.persistence.storageClass }}
         storageClassName: {{ .Values.s3.logs.persistence.storageClass | quote }}
+        {{- end }}
         resources:
           requests:
             storage: {{ .Values.s3.logs.persistence.size }}
