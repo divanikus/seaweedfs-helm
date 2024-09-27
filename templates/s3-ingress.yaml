@@ -1,0 +1,46 @@
+{{- $ingress := (coalesce (ternary .Values.s3.ingress "" .Values.s3.enabled) (ternary .Values.filer.s3.ingress "" (and .Values.filer.enabled .Values.filer.s3.enabled)) (ternary .Values.server.s3.ingress "" (and .Values.server.enabled .Values.server.s3.enabled)) | default dict) }}
+{{- if and $ingress $ingress.enabled }}
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion }}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion }}
+apiVersion: networking.k8s.io/v1beta1
+{{- else }}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: ingress-{{ template "seaweedfs.name" . }}-s3
+  namespace: {{ .Release.Namespace }}
+  {{- with $ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: s3
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ $ingress.className | quote }}
+  tls:
+    {{- $ingress.tls | default list | toYaml | nindent 4 }}
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion }}
+          service:
+            name: {{ template "seaweedfs.name" . }}-s3
+            port:
+              number: 8333
+{{- else }}
+          serviceName: {{ template "seaweedfs.name" . }}-s3
+          servicePort: 8333
+{{- end }}
+{{- if $ingress.host }}
+    host: {{ $ingress.host }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,344 @@
+{{- if .Values.server.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "seaweedfs.name" . }}-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  serviceName: {{ template "seaweedfs.name" . }}-server
+  podManagementPolicy: {{ .Values.server.podManagementPolicy }}
+  replicas: {{ .Values.server.replicas }}
+  updateStrategy: {{- toYaml .Values.server.updateStrategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "seaweedfs.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+      {{- include "seaweedfs.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: server
+      {{- with .Values.commonLabels }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.podLabels }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      annotations:
+      {{- with .Values.commonAnnotations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.podAnnotations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: {{ default .Values.restartPolicy .Values.server.restartPolicy }}
+      {{- if .Values.server.affinity }}
+      affinity:
+        {{ tpl .Values.server.affinity . | nindent 8 | trim }}
+      {{- end }}
+      {{- if .Values.server.tolerations }}
+      tolerations:
+        {{ tpl .Values.server.tolerations . | nindent 8 | trim }}
+      {{- end }}
+      {{- include "seaweedfs.imagePullSecrets" . | nindent 6 }}
+      terminationGracePeriodSeconds: 60
+      {{- if .Values.server.priorityClassName }}
+      priorityClassName: {{ .Values.server.priorityClassName | quote }}
+      {{- end }}
+      enableServiceLinks: false
+      {{- if .Values.rbac.create }}
+      serviceAccountName: {{ .Values.server.serviceAccountName | default .Values.serviceAccount.name | quote }} # for deleting statefulset pods after migration
+      {{- end }}
+      {{- if .Values.server.initContainers }}
+      initContainers:
+        {{ tpl .Values.server.initContainers . | nindent 8 | trim }}
+      {{- end }}
+      {{- if .Values.server.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.server.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: seaweedfs
+          image: {{ template "common.image" . }}
+          imagePullPolicy: {{ default "IfNotPresent" .Values.image.pullPolicy }}
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SEAWEEDFS_FULLNAME
+              value: "{{ template "seaweedfs.name" . }}"
+            {{- if .Values.server.extraEnvVars }}
+            {{- range $key, $value := .Values.server.extraEnvVars }}
+            - name: {{ $key }}
+            {{- if kindIs "string" $value }}
+              value: {{ $value | quote }}
+            {{- else }}
+              valueFrom:
+                {{ toYaml $value | nindent 16 | trim }}
+            {{- end -}}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.extraEnvVars }}
+            {{- range $key, $value := .Values.extraEnvVars }}
+            - name: {{ $key }}
+            {{- if kindIs "string" $value }}
+              value: {{ $value | quote }}
+            {{- else }}
+              valueFrom:
+                {{ toYaml $value | nindent 16 | trim }}
+            {{- end -}}
+            {{- end }}
+            {{- end }}
+          command:
+            - "/bin/sh"
+            - "-ec"
+            - |
+              exec /usr/bin/weed \
+              {{- if (not .Values.server.logs.logToStdErr) }}
+              -logdir=/logs \
+              {{- else }}
+              -logtostderr=true \
+              {{- end }}
+              -v={{ default .Values.logLevel .Values.server.logs.logLevel }} \
+              server \
+              {{- if .Values.server.filer }}
+              -filer \
+              {{- end }}
+              -dir=/data \
+              {{- if .Values.metrics.enabled }}
+              -metricsPort=9327 \
+              {{- end }}
+              {{- range $key, $value := .Values.server.args }}
+              {{- $kind := kindOf $value }}
+              -{{ $key }}{{ template "args.value.render" $value }} \
+              {{- end }}
+              {{- if .Values.server.s3.enabled }}
+              -s3 \             
+              {{- range $key, $value := .Values.server.s3.args }}
+              {{- $kind := kindOf $value }}
+              -s3.{{ $key }}{{ template "args.value.render" $value }} \
+              {{- end }}
+              {{- if and .Values.security.enabled .Values.security.tls.enabled }}
+              -s3.port.https=18333 \
+              -s3.cert.file=/usr/local/share/ca-certificates/client/tls.crt \
+              -s3.key.file=/usr/local/share/ca-certificates/client/tls.key \
+              {{- end }}
+              {{- end }}
+              -ip=${POD_IP} \
+              {{- if .Values.master.enabled }}
+              -master.peers={{ range $index := until (.Values.master.replicas | int) }}${SEAWEEDFS_FULLNAME}-master-{{ $index }}.${SEAWEEDFS_FULLNAME}-master.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.master.replicas | int) 1) }},{{ end }}{{ end }}
+              {{- else }}
+              -master.peers={{ range $index := until (.Values.server.replicas | int) }}${SEAWEEDFS_FULLNAME}-server-{{ $index }}.${SEAWEEDFS_FULLNAME}-server.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.server.replicas | int) 1) }},{{ end }}{{ end }}
+              {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            {{- if not .Values.server.logs.logToStdErr }}
+            - name: logs
+              mountPath: /logs
+            {{- end }}
+            {{- if .Values.server.master }}
+            - name: server-master-config
+              readOnly: true
+              mountPath: /etc/seaweedfs/master.toml
+              subPath: master.toml
+            {{- end }}
+           {{- if .Values.server.filer }}
+            - name: server-filer-config
+              readOnly: true
+              mountPath: /etc/seaweedfs/filer.toml
+              subPath: filer.toml
+            {{- end }}
+            {{- if .Values.security.enabled }}
+            - name: security-config
+              readOnly: true
+              mountPath: /etc/seaweedfs/security.toml
+              subPath: security.toml
+            {{- if .Values.security.tls.enabled }}
+            - name: ca-cert
+              readOnly: true
+              mountPath: /usr/local/share/ca-certificates/ca/
+            - name: master-cert
+              readOnly: true
+              mountPath: /usr/local/share/ca-certificates/master/
+            - name: volume-cert
+              readOnly: true
+              mountPath: /usr/local/share/ca-certificates/volume/
+            - name: filer-cert
+              readOnly: true
+              mountPath: /usr/local/share/ca-certificates/filer/
+            - name: client-cert
+              readOnly: true
+              mountPath: /usr/local/share/ca-certificates/client/
+            {{- end }}
+            {{- end }}
+            {{- if .Values.server.extraVolumeMounts }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.server.extraVolumeMounts "context" $) | nindent 12 }}
+            {{- end }}
+          ports:
+            - containerPort: 9333
+              name: swfs-server
+            - containerPort: 19333
+              name: swfs-server-grpc
+            {{- if .Values.server.filer }}
+            - containerPort: 8888
+              name: swfs-filer
+            - containerPort: 18888
+              name: swfs-filer-grpc
+            {{- end }}
+            - containerPort: 8080
+              name: swfs-vol
+            - containerPort: 18080
+              name: swfs-vol-grpc
+            {{- if .Values.server.s3.enabled }}
+            - containerPort: 8333
+              name: swfs-s3
+            {{- if and .Values.security.enabled .Values.security.tls.enabled }}
+            - containerPort: 18333
+              name: swfs-s3-tls
+            {{- end }}
+            {{- end }}
+            {{- if .Values.metrics.enabled }}
+            - containerPort: 9327
+              name: metrics
+            {{- end }}
+          {{- if .Values.server.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /cluster/status
+              port: 9333
+              scheme: HTTP
+            {{- omit .Values.server.readinessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.server.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /cluster/status
+              port: 9333
+              scheme: HTTP
+            {{- omit .Values.server.livenessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- with .Values.server.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.server.containerSecurityContext.enabled }}
+          securityContext: {{- omit .Values.server.containerSecurityContext "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+        {{- if .Values.server.sidecars }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.server.sidecars "context" $) | nindent 8 }}
+        {{- end }}
+      volumes:
+        {{- if not .Values.server.logs.logToStdErr }}
+        {{- if not .Values.server.logs.persistence.enabled }}
+        - name: logs
+          emptyDir: {}
+        {{- else if .Values.server.logs.persistence.existingClaim }}
+        - name: logs
+          persistentVolumeClaim:
+            claimName: {{ .Values.server.logs.persistence.existingClaim }}
+        {{- end }}
+        {{- end }}
+        {{- if not .Values.server.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- else if .Values.server.persistence.existingClaim }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.server.persistence.existingClaim }}
+        {{- end }}
+        {{- if .Values.server.master }}
+        - name: server-master-config
+          configMap:
+            name: {{ template "seaweedfs.name" . }}-server-master-config
+        {{- end }}
+        {{- if .Values.server.filer }}
+        - name: server-filer-config
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-server-filer-config
+        {{- end }}
+        {{- if .Values.security.enabled }}
+        - name: security-config
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-security-config
+        {{- if .Values.security.tls.enabled }}
+        - name: ca-cert
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-ca-cert
+        - name: master-cert
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-master-cert
+        - name: volume-cert
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-volume-cert
+        - name: filer-cert
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-filer-cert
+        - name: client-cert
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-client-cert
+        {{- end }}
+        {{- end }}
+        {{- if .Values.server.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.server.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}
+      {{- if .Values.server.nodeSelector }}
+      nodeSelector:
+        {{- include "common.tplvalues.render" (dict "value" .Values.server.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+  {{- $pvc_exists := include "server.pvc_exists" . -}}
+  {{- if $pvc_exists }}
+  volumeClaimTemplates:
+    {{- if and .Values.server.persistence.enabled (not .Values.server.persistence.existingClaim) }}
+    - metadata:
+        name: data
+        {{- with .Values.server.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+        {{- range .Values.server.persistence.accessModes }}
+          - {{ . | quote }}
+        {{- end }}
+        storageClassName: {{ .Values.server.persistence.storageClass | quote }}
+        resources:
+          requests:
+            storage: {{ .Values.server.persistence.size }}
+        {{- if .Values.server.persistence.selector }}
+        selector: {{- include "common.tplvalues.render" (dict "value" .Values.server.persistence.selector "context" $) | nindent 10 }}
+        {{- end -}}
+    {{- end }}
+    {{- if not .Values.server.logs.logToStdErr }}
+    {{- if and .Values.server.logs.persistence.enabled (not .Values.server.logs.persistence.existingClaim) }}
+    - metadata:
+        name: logs
+        {{- with .Values.server.logs.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+        {{- range .Values.server.logs.persistence.accessModes }}
+          - {{ . | quote }}
+        {{- end }}
+        storageClassName: {{ .Values.server.logs.persistence.storageClass | quote }}
+        resources:
+          requests:
+            storage: {{ .Values.server.logs.persistence.size }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}

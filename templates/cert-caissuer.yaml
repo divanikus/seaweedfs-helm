@@ -1,0 +1,17 @@
+{{- if .Values.security.enabled }}
+{{- if and .Values.security.tls.enabled (not .Values.security.tls.externalCertificates.enabled) }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ template "seaweedfs.name" . }}-ca-issuer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ca:
+    secretName: {{ template "seaweedfs.name" . }}-ca-cert
+{{- end }}
+{{- end }}

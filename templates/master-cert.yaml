@@ -1,0 +1,43 @@
+{{- if .Values.security.enabled }}
+{{- if and .Values.security.tls.enabled (not .Values.security.tls.externalCertificates.enabled)}}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ template "seaweedfs.name" . }}-master-cert
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: master
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  secretName: {{ template "seaweedfs.name" . }}-master-cert
+  issuerRef:
+    name: {{ template "seaweedfs.name" . }}-ca-issuer
+    kind: Issuer
+  commonName: {{ .Values.security.tls.commonName }}
+  subject:
+    organizations:
+    - "SeaweedFS CA"
+  dnsNames:
+    - '*.{{ .Release.Namespace }}'
+    - '*.{{ .Release.Namespace }}.svc'
+    - '*.{{ .Release.Namespace }}.svc.cluster.local'
+    - '*.{{ template "seaweedfs.name" . }}-master'
+    - '*.{{ template "seaweedfs.name" . }}-master.{{ .Release.Namespace }}'
+    - '*.{{ template "seaweedfs.name" . }}-master.{{ .Release.Namespace }}.svc'
+    - '*.{{ template "seaweedfs.name" . }}-master.{{ .Release.Namespace }}.svc.cluster.local'
+{{- if .Values.security.tls.ipAddresses }}
+  ipAddresses:
+    {{- range .Values.security.tls.ipAddresses }}
+    - {{ . }}
+    {{- end }}
+{{- end }}
+  privateKey:
+    algorithm: {{ .Values.security.tls.keyAlgorithm }}
+    size: {{ .Values.security.tls.keySize }}
+  duration: {{ .Values.security.tls.duration }}
+  renewBefore: {{ .Values.security.tls.renewBefore }}
+{{- end }}
+{{- end }}

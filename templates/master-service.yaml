@@ -1,0 +1,39 @@
+{{- if .Values.master.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "seaweedfs.name" . }}-master
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: master
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+    {{- with .Values.commonAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+  - name: "swfs-master"
+    port: 9333
+    targetPort: 9333
+    protocol: TCP
+  - name: "swfs-master-grpc"
+    port: 19333
+    targetPort: 19333
+    protocol: TCP
+  {{- if .Values.metrics.enabled }}
+  - name: "metrics"
+    port: 9327
+    targetPort: 9327
+    protocol: TCP
+  {{- end }}
+  selector:
+    {{- include "seaweedfs.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: master
+{{- end }}

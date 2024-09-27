@@ -1,0 +1,61 @@
+{{- if .Values.server.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "seaweedfs.name" . }}-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+    {{- with .Values.commonAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+  - name: "swfs-server"
+    port: 9333
+    targetPort: 9333
+    protocol: TCP
+  - name: "swfs-server-grpc"
+    port: 19333
+    targetPort: 19333
+    protocol: TCP
+  {{- if .Values.server.filer }}
+  - name: "swfs-filer"
+    port: 8888
+    targetPort: 8888
+    protocol: TCP
+  - name: "swfs-filer-grpc"
+    port: 18888
+    targetPort: 18888
+    protocol: TCP
+  {{- end }}
+  {{- if .Values.server.s3.enabled }}
+  - name: "swfs-s3"
+    port: 8333
+    targetPort: 8333
+    protocol: TCP
+  {{- if and .Values.security.enabled .Values.security.tls.enabled }}
+  - name: "swfs-s3-tls"
+    port: 18333
+    targetPort: 18333
+    protocol: TCP
+  {{- end }}
+  {{- end }}
+  {{- if .Values.metrics.enabled }}
+  - name: "metrics"
+    port: 9327
+    targetPort: 9327
+    protocol: TCP
+  {{- end }}
+  selector:
+    {{- include "seaweedfs.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+{{- end }}

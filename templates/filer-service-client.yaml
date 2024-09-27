@@ -1,0 +1,40 @@
+{{- if .Values.filer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "seaweedfs.name" . }}-filer-client
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: filer
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- if .Values.metrics.enabled }}
+    monitoring: "true"
+{{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  clusterIP: None
+  ports:
+  - name: "swfs-filer"
+    port: 8888
+    targetPort: 8888
+    protocol: TCP
+  - name: "swfs-filer-grpc"
+    port: 18888
+    targetPort: 18888
+    protocol: TCP
+{{- if .Values.metrics.enabled }}
+  - name: "metrics"
+    port: 9327
+    targetPort: 9327
+    protocol: TCP
+{{- end }}
+  selector:
+    {{- include "seaweedfs.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: filer
+{{- end }}

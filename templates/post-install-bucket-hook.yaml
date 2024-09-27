@@ -1,0 +1,111 @@
+{{- $createBuckets := (coalesce (ternary .Values.s3.createBuckets "" .Values.s3.enabled) (ternary .Values.filer.s3.createBuckets "" (and .Values.filer.enabled .Values.filer.s3.enabled)) (ternary .Values.server.s3.createBuckets "" (and .Values.server.enabled .Values.server.s3.enabled)) | default dict) }}
+{{- if $createBuckets }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $.Release.Name }}-bucket-hook"
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "seaweedfs.labels" . | nindent 8 }}
+    spec:
+      {{- include "seaweedfs.imagePullSecrets" . | nindent 6 -}}
+      restartPolicy: Never
+      {{- if .Values.filer.podSecurityContext.enabled }}
+      securityContext: {{- omit (ternary .Values.server.podSecurityContext .Values.master.podSecurityContext .Values.server.enabled) . "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: post-install-job
+        image: {{ template "common.image" . }}
+        imagePullPolicy: {{ default "IfNotPresent" .Values.image.pullPolicy }}
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: SEAWEEDFS_FULLNAME
+            value: "{{ template "seaweedfs.name" . }}"
+        command:
+          - "/bin/sh"
+          - "-ec"
+          - |
+          {{- range $idx, $name := $createBuckets }}
+            exec /bin/echo \
+            "s3.bucket.create --name {{ $name }}" |\
+            /usr/bin/weed shell \
+            {{- if $.Values.master.enabled }}
+            -master={{ range $index := until ($.Values.master.replicas | int) }}${SEAWEEDFS_FULLNAME}-master-{{ $index }}.${SEAWEEDFS_FULLNAME}-master.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.master.replicas | int) 1) }},{{ end }}{{ end }}
+            {{- else if $.Values.server.enabled }}
+            -master={{ range $index := until ($.Values.server.replicas | int) }}${SEAWEEDFS_FULLNAME}-server-{{ $index }}.${SEAWEEDFS_FULLNAME}-server.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.server.replicas | int) 1) }},{{ end }}{{ end }}
+            {{- else }}
+            -help
+            {{- end }}
+          {{- end }}
+        {{- if .Values.security.enabled }}
+        volumeMounts:
+        - name: security-config
+          readOnly: true
+          mountPath: /etc/seaweedfs/security.toml
+          subPath: security.toml
+        {{- if .Values.security.tls.enabled }}
+        - name: ca-cert
+          readOnly: true
+          mountPath: /usr/local/share/ca-certificates/ca/
+        - name: master-cert
+          readOnly: true
+          mountPath: /usr/local/share/ca-certificates/master/
+        - name: volume-cert
+          readOnly: true
+          mountPath: /usr/local/share/ca-certificates/volume/
+        - name: filer-cert
+          readOnly: true
+          mountPath: /usr/local/share/ca-certificates/filer/
+        - name: client-cert
+          readOnly: true
+          mountPath: /usr/local/share/ca-certificates/client/
+        {{- end }}
+        {{- end }}
+        {{- $containerSecurityContext := (ternary .Values.server.containerSecurityContext .Values.master.containerSecurityContext .Values.server.enabled) }}
+        {{- if $containerSecurityContext.enabled }}
+        securityContext: {{- omit $containerSecurityContext "enabled" | toYaml | nindent 12 }}
+        {{- end }}
+      {{- if .Values.security.enabled }}
+      volumes:
+      - name: security-config
+        secret:
+          secretName: {{ template "seaweedfs.name" . }}-security-config
+      {{- if .Values.security.tls.enabled }}
+      - name: ca-cert
+        secret:
+          secretName: {{ template "seaweedfs.name" . }}-ca-cert
+      - name: master-cert
+        secret:
+          secretName: {{ template "seaweedfs.name" . }}-master-cert
+      - name: volume-cert
+        secret:
+          secretName: {{ template "seaweedfs.name" . }}-volume-cert
+      - name: filer-cert
+        secret:
+          secretName: {{ template "seaweedfs.name" . }}-filer-cert
+      - name: client-cert
+        secret:
+          secretName: {{ template "seaweedfs.name" . }}-client-cert
+      {{- end }}
+      {{- end }}
+{{- end }}

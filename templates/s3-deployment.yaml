@@ -1,0 +1,281 @@
+{{- if .Values.s3.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "seaweedfs.name" . }}-s3
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: s3
+spec:
+  serviceName: {{ template "seaweedfs.name" . }}-s3
+  replicas: {{ .Values.s3.replicas }}
+  strategy: {{- toYaml .Values.s3.updateStrategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "seaweedfs.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: s3
+  template:
+    metadata:
+      labels:
+      {{- include "seaweedfs.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: s3
+      {{- with .Values.commonLabels }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.s3.podLabels }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      annotations:
+      {{- with .Values.commonAnnotations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.s3.podAnnotations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: {{ default .Values.restartPolicy .Values.s3.restartPolicy }}
+      {{- if .Values.s3.affinity }}
+      affinity:
+        {{ tpl .Values.s3.affinity . | nindent 8 | trim }}
+      {{- end }}
+      {{- if .Values.s3.tolerations }}
+      tolerations:
+        {{ tpl .Values.s3.tolerations . | nindent 8 | trim }}
+      {{- end }}
+      {{- include "seaweedfs.imagePullSecrets" . | nindent 6 }}
+      terminationGracePeriodSeconds: 60
+      {{- if .Values.s3.priorityClassName }}
+      priorityClassName: {{ .Values.s3.priorityClassName | quote }}
+      {{- end }}
+      enableServiceLinks: false
+      {{- if .Values.rbac.create }}
+      serviceAccountName: {{ .Values.s3.serviceAccountName | default .Values.serviceAccount.name | quote }}
+      {{- end }}
+      {{- if .Values.s3.initContainers }}
+      initContainers:
+        {{ tpl .Values.s3.initContainers . | nindent 8 | trim }}
+      {{- end }}
+      {{- if .Values.s3.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.s3.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: seaweedfs
+          image: {{ template "common.image" . }}
+          imagePullPolicy: {{ default "IfNotPresent" .Values.image.pullPolicy }}
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SEAWEEDFS_FULLNAME
+              value: "{{ template "seaweedfs.name" . }}"
+            {{- if .Values.s3.extraEnvVars }}
+            {{- range $key, $value := .Values.s3.extraEnvVars }}
+            - name: {{ $key }}
+            {{- if kindIs "string" $value }}
+              value: {{ $value | quote }}
+            {{- else }}
+              valueFrom:
+                {{ toYaml $value | nindent 16 | trim }}
+            {{- end -}}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.extraEnvVars }}
+            {{- range $key, $value := .Values.extraEnvVars }}
+            - name: {{ $key }}
+            {{- if kindIs "string" $value }}
+              value: {{ $value | quote }}
+            {{- else }}
+              valueFrom:
+                {{ toYaml $value | nindent 16 | trim }}
+            {{- end -}}
+            {{- end }}
+            {{- end }}
+          command:
+            - "/bin/sh"
+            - "-ec"
+            - |
+              exec /usr/bin/weed \
+              {{- if (not .Values.s3.logs.logToStdErr) }}
+              -logdir=/logs \
+              {{- else }}
+              -logtostderr=true \
+              {{- end }}
+              -v={{ default .Values.logLevel .Values.s3.logs.logLevel }} \
+              s3 \
+              {{- if .Values.metrics.enabled }}
+              -metricsPort=9327 \
+              {{- end }}
+              {{- range $key, $value := .Values.s3.args }}
+              -{{ $key }}{{ template "args.value.render" $value }} \
+              {{- end }}
+              -ip=${POD_IP} \
+              -port=8333 \
+              {{- if and .Values.security.enabled .Values.security.tls.enabled }}
+              -port.https=18333 \
+              -cert.file=/usr/local/share/ca-certificates/client/tls.crt \
+              -key.file=/usr/local/share/ca-certificates/client/tls.key \
+              {{- end }}
+              {{- if .Values.s3.auth.enabled }}
+              -config=/etc/seaweedfs/s3/config.json \
+              {{- end }}
+              {{- if .Values.s3.auditLogConfig }}
+              -auditLogConfig=/etc/seaweedfs/s3/auditLogConfig.json \
+              {{- end }}
+              -filer={{ template "seaweedfs.name" . }}-filer-client.{{ .Release.Namespace }}:8888
+          volumeMounts:
+            {{- if not .Values.s3.logs.logToStdErr }}
+            - name: logs
+              mountPath: /logs
+            {{- end }}
+            {{- if .Values.security.enabled }}
+            - name: security-config
+              readOnly: true
+              mountPath: /etc/seaweedfs/security.toml
+              subPath: security.toml
+            {{- if .Values.security.tls.enabled }}
+            - name: ca-cert
+              readOnly: true
+              mountPath: /usr/local/share/ca-certificates/ca/
+            - name: master-cert
+              readOnly: true
+              mountPath: /usr/local/share/ca-certificates/master/
+            - name: volume-cert
+              readOnly: true
+              mountPath: /usr/local/share/ca-certificates/volume/
+            - name: filer-cert
+              readOnly: true
+              mountPath: /usr/local/share/ca-certificates/filer/
+            - name: client-cert
+              readOnly: true
+              mountPath: /usr/local/share/ca-certificates/client/
+            {{- end }}
+            {{- end }}
+            {{- if .Values.s3.auth.enabled }}
+            - name: config-users
+              mountPath: /etc/seaweedfs/s3/
+              readOnly: true
+            {{- end }}
+            {{- if .Values.s3.extraVolumeMounts }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.s3.extraVolumeMounts "context" $) | nindent 12 }}
+            {{- end }}
+          ports:
+            - containerPort: 8333
+              name: swfs-s3
+            {{- if and .Values.security.enabled .Values.security.tls.enabled }}
+            - containerPort: 18333
+              name: swfs-s3-tls
+            {{- end }}
+            {{- if .Values.metrics.enabled }}
+            - containerPort: 9327
+              name: metrics
+            {{- end }}
+          {{- if .Values.s3.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8888
+              scheme: HTTP
+            {{- omit .Values.s3.readinessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.s3.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8888
+              scheme: HTTP
+            {{- omit .Values.s3.livenessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- with .Values.s3.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.s3.containerSecurityContext.enabled }}
+          securityContext: {{- omit .Values.s3.containerSecurityContext "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+        {{- if .Values.s3.sidecars }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.s3.sidecars "context" $) | nindent 8 }}
+        {{- end }}
+      volumes:
+        {{- if not .Values.s3.logs.logToStdErr }}
+        {{- if not .Values.s3.logs.persistence.enabled }}
+        - name: logs
+          emptyDir: {}
+        {{- else if .Values.s3.logs.persistence.existingClaim }}
+        - name: logs
+          persistentVolumeClaim:
+            claimName: {{ .Values.s3.logs.persistence.existingClaim }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.security.enabled }}
+        - name: security-config
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-security-config
+        {{- if .Values.security.tls.enabled }}
+        - name: ca-cert
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-ca-cert
+        - name: master-cert
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-master-cert
+        - name: volume-cert
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-volume-cert
+        - name: filer-cert
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-filer-cert
+        - name: client-cert
+          secret:
+            secretName: {{ template "seaweedfs.name" . }}-client-cert
+        {{- end }}
+        {{- end }}
+        {{- if and .Values.s3.enabled .Values.s3.auth.enabled }}
+        - name: config-users
+          secret:
+            defaultMode: 420
+            {{- if .Values.s3.auth.existingConfigSecret }}
+            secretName: {{ .Values.s3.auth.existingConfigSecret }}
+            {{- else }}
+            secretName: {{ template "seaweedfs.name" . }}-s3-secret
+            {{- end }}
+        {{- end }}
+        {{- if .Values.s3.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.s3.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}
+      {{- if .Values.s3.nodeSelector }}
+      nodeSelector:
+        {{- include "common.tplvalues.render" (dict "value" .Values.s3.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+  {{- $pvc_exists := include "s3.pvc_exists" . -}}
+  {{- if $pvc_exists }}
+  {{- if not .Values.s3.logs.logToStdErr }}
+  volumeClaimTemplates:
+    {{- if and .Values.s3.logs.persistence.enabled (not .Values.s3.logs.persistence.existingClaim) }}
+    - metadata:
+        name: logs
+        {{- with .Values.s3.logs.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+        {{- range .Values.s3.logs.persistence.accessModes }}
+          - {{ . | quote }}
+        {{- end }}
+        storageClassName: {{ .Values.s3.logs.persistence.storageClass | quote }}
+        resources:
+          requests:
+            storage: {{ .Values.s3.logs.persistence.size }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
+{{- end }}

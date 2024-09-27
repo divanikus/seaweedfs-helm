@@ -1,0 +1,701 @@
+# Default values for seaweedfs.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: chrislusf/seaweedfs
+  tag: "3.73"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+commonLabels: {}
+commonAnnotations: {}
+
+rbac:
+  create: false
+
+serviceAccount:
+  create: true
+  name: "seaweedfs"
+  automountServiceAccountToken: true
+  annotations: {}
+
+extraEnvVars: []
+logLevel: 1
+restartPolicy: Always
+
+security:
+  enabled: true
+  config:
+    jwtSigning:
+      volumeWrite: true
+      volumeRead: false
+      filerWrite: false
+      filerRead: false
+  tls:
+    enabled: true
+    commonName: "SeaweedFS CA"
+    ipAddresses: []
+    keyAlgorithm: RSA
+    keySize: 2048
+    duration: 2160h  # 90d
+    renewBefore: 360h  # 15d
+    externalCertificates:
+      # This will avoid the need to use cert-manager and will rely on providing your own external certificates and CA
+      # you will need to store your provided certificates in the secret read by the different services:
+      # seaweedfs-master-cert, seaweedfs-filer-cert, etc. Can see any statefulset definition to see secret names
+      enabled: false
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 5s
+    selector: {}
+    labels: {}
+  dashboards:
+    enabled: false
+
+master:
+  enabled: false
+  replicas: 1
+  args:
+    ip.bind: "0.0.0.0"
+    volumePreallocate: false
+    volumeSizeLimitMB: 1000
+    defaultReplication: "000"
+
+  config: |-
+    # Enter any extra configuration for master.toml here.
+    # It may be a multi-line string.
+    [master.volume_growth]
+    copy_1 = 7                # create 1 x 7 = 7 actual volumes
+    copy_2 = 6                # create 2 x 6 = 12 actual volumes
+    copy_3 = 3                # create 3 x 3 = 9 actual volumes
+    copy_other = 1            # create n x 1 = n actual volumes
+
+  persistence:
+    enabled: true
+    existingClaim: ""
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
+    annotations: {}
+    selector: {}
+
+  logs:
+    logLevel: 1
+    logToStdErr: true
+
+    persistence:
+      enabled: false
+      existingClaim: ""
+      storageClass: ""
+      accessModes:
+        - ReadWriteOnce
+      size: 10Gi
+      annotations: {}
+      selector: {}
+
+  extraEnvVars: []
+
+  resources:
+    limits: {}
+    requests: {}
+
+  serviceAccountName: ""
+
+  podManagementPolicy: Parallel
+  podSecurityContext: {}
+  
+  podLabels: {}
+  podAnnotations: {}
+
+  affinity: |-
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ template "seaweedfs.name" . }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/component: master
+          topologyKey: kubernetes.io/hostname
+         
+  nodeSelector: |-
+    kubernetes.io/arch: amd64
+
+  tolerations: []
+
+  extraVolumes: []
+  extraVolumeMounts: []
+
+  sidecars: []
+  initContainers: []
+
+  priorityClassName: ""
+
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: {}
+
+  containerSecurityContext: {}
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    successThreshold: 1
+    failureThreshold: 4
+    timeoutSeconds: 10
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 45
+    successThreshold: 2
+    failureThreshold: 100
+    timeoutSeconds: 10
+
+  ingress:
+    enabled: false
+    className: ""
+    # host: false for "*" hostname
+    host: "master.seaweedfs.local"
+    annotations:  {}
+    tls: []
+
+filer:
+  enabled: false
+  replicas: 1
+  args:
+    defaultReplicaPlacement: "000"
+
+  config: |-
+    [leveldb2]
+    # local on disk, mostly for simple single-machine setup, fairly scalable
+    # faster than previous leveldb, recommended.
+    enabled = true
+    dir = "/data"
+
+  persistence:
+    enabled: true
+    existingClaim: ""
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
+    annotations: {}
+    selector: {}
+
+  logs:
+    logLevel: 1
+    logToStdErr: true
+
+    persistence:
+      enabled: false
+      existingClaim: ""
+      storageClass: ""
+      accessModes:
+        - ReadWriteOnce
+      size: 10Gi
+      annotations: {}
+      selector: {}
+
+  extraEnvVars: []
+
+  resources:
+    limits: {}
+    requests: {}
+
+  serviceAccountName: ""
+
+  podManagementPolicy: Parallel
+  podSecurityContext: {}
+  
+  podLabels: {}
+  podAnnotations: {}
+
+  affinity: |-
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ template "seaweedfs.name" . }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/component: filer
+          topologyKey: kubernetes.io/hostname
+         
+  nodeSelector: |-
+    kubernetes.io/arch: amd64
+
+  tolerations: []
+
+  extraVolumes: []
+  extraVolumeMounts: []
+
+  sidecars: []
+  initContainers: []
+
+  priorityClassName: ""
+
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: {}
+
+  containerSecurityContext: {}
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    successThreshold: 1
+    failureThreshold: 5
+    timeoutSeconds: 10
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    successThreshold: 1
+    failureThreshold: 100
+    timeoutSeconds: 10
+
+  ingress:
+    enabled: false
+    className: ""
+    host: "seaweedfs.cluster.local"
+    annotations: {}
+
+  s3:
+    enabled: true
+    args:
+      allowEmptyFolder: false
+
+    auth: 
+      enabled: true
+      existingConfigSecret: ""
+
+      config: |-
+        identities:
+        - name: anonymous
+          actions:
+          - Read
+        - name: anvAdmin
+          credentials:
+            accessKey: ""
+            secretKey: ""
+          actions:
+          - Admin
+          - Read
+          - Write
+        - name: anvReadOnly
+          credentials:
+            accessKey: ""
+            secretKey: ""
+          actions:
+          - Read
+    
+    auditLogConfig: {}
+
+    ingress:
+      enabled: false
+      className: ""
+      host: "seaweedfs.cluster.local"
+      annotations: {}
+      tls: []
+
+volume:
+  enabled: true
+
+  args: 
+    dataCenter: dc1
+
+  nodeSets:
+  - name: hdd
+    replicas: 1
+    args:
+      rack: rack1
+  
+    persistence:
+      enabled: false
+      disks:
+      - disk: hdd
+        max: 0
+        existingClaim: ""
+        storageClass: ""
+        accessModes:
+          - ReadWriteOnce
+        size: 10Gi
+      idx:
+        existingClaim: ""
+        storageClass: ""
+        accessModes:
+          - ReadWriteOnce
+        size: 20Gi
+        annotations: {}
+        selector: {}
+
+  logs:
+    logLevel: 1
+    logToStdErr: true
+
+    persistence:
+      enabled: false
+      existingClaim: ""
+      storageClass: ""
+      accessModes:
+        - ReadWriteOnce
+      size: 10Gi
+      annotations: {}
+      selector: {}
+
+  extraEnvVars: []
+
+  resources:
+    limits: {}
+    requests: {}
+
+  serviceAccountName: ""
+
+  podManagementPolicy: Parallel
+  podSecurityContext: {}
+  
+  podLabels: {}
+  podAnnotations: {}
+
+  affinity: |-
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ template "seaweedfs.name" . }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/component: volume
+          topologyKey: kubernetes.io/hostname
+         
+  nodeSelector: |-
+    kubernetes.io/arch: amd64
+
+  tolerations: []
+
+  extraVolumes: []
+  extraVolumeMounts: []
+
+  sidecars: []
+  initContainers: []
+
+  priorityClassName: ""
+
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: {}
+
+  containerSecurityContext: {}
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 20
+    periodSeconds: 90
+    successThreshold: 1
+    failureThreshold: 4
+    timeoutSeconds: 10
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 15
+    periodSeconds: 15
+    successThreshold: 1
+    failureThreshold: 100
+    timeoutSeconds: 30
+
+s3:
+  enabled: false
+  replicas: 1
+
+  args:
+    ip.bind: "0.0.0.0"
+    allowEmptyFolder: false
+
+  auth: 
+    enabled: false
+    existingConfigSecret: ""
+
+    config: |-
+      identities:
+      - name: anonymous
+        actions:
+        - Read
+      - name: anvAdmin
+        credentials:
+          accessKey: ""
+          secretKey: ""
+        actions:
+        - Admin
+        - Read
+        - Write
+      - name: anvReadOnly
+        credentials:
+          accessKey: ""
+          secretKey: ""
+        actions:
+        - Read
+  
+  auditLogConfig: {}
+
+  ingress:
+    enabled: true
+    className: ""
+    host: "seaweedfs.cluster.local"
+    annotations: {}
+    tls: []
+
+  internalTrafficPolicy: Cluster
+
+  logs:
+    logLevel: 1
+    logToStdErr: true
+
+    persistence:
+      enabled: true
+      existingClaim: ""
+      storageClass: ""
+      accessModes:
+        - ReadWriteOnce
+      size: 10Gi
+      annotations: {}
+      selector: {}
+
+  extraEnvVars: []
+
+  resources:
+    limits: {}
+    requests: {}
+
+  serviceAccountName: ""
+
+  podSecurityContext: {}
+  
+  podLabels: {}
+  podAnnotations: {}
+
+  affinity: ""
+         
+  nodeSelector: |-
+    kubernetes.io/arch: amd64
+
+  tolerations: []
+
+  extraVolumes: []
+  extraVolumeMounts: []
+
+  sidecars: []
+  initContainers: []
+
+  priorityClassName: ""
+
+  updateStrategy:
+    type: Recreate
+
+  containerSecurityContext: {}
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 20
+    periodSeconds: 60
+    successThreshold: 1
+    failureThreshold: 20
+    timeoutSeconds: 10
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 15
+    periodSeconds: 15
+    successThreshold: 1
+    failureThreshold: 100
+    timeoutSeconds: 10
+
+server:
+  enabled: true
+  replicas: 1
+  args:
+    ip.bind: "0.0.0.0"
+    volumePreallocate: false
+    volumeSizeLimitMB: 1000
+    defaultReplication: "000"
+
+  master: |-
+    # Enter any extra configuration for master.toml here.
+    # It may be a multi-line string.
+    [master.volume_growth]
+    copy_1 = 7                # create 1 x 7 = 7 actual volumes
+    copy_2 = 6                # create 2 x 6 = 12 actual volumes
+    copy_3 = 3                # create 3 x 3 = 9 actual volumes
+    copy_other = 1            # create n x 1 = n actual volumes
+
+  filer: |-
+    [leveldb2]
+    # local on disk, mostly for simple single-machine setup, fairly scalable
+    # faster than previous leveldb, recommended.
+    enabled = true
+    dir = "/data"
+
+  s3:
+    enabled: true
+    args:
+      allowEmptyFolder: false
+
+    createBuckets:
+    - just
+    - test
+
+    auth: 
+      enabled: true
+      existingConfigSecret: ""
+
+      config: |-
+        identities:
+        - name: anonymous
+          actions:
+          - Read
+        - name: anvAdmin
+          credentials:
+            accessKey: ""
+            secretKey: ""
+          actions:
+          - Admin
+          - Read
+          - Write
+        - name: anvReadOnly
+          credentials:
+            accessKey: ""
+            secretKey: ""
+          actions:
+          - Read
+    
+    auditLogConfig: {}
+
+    ingress:
+      enabled: false
+      className: ""
+      host: "seaweedfs.cluster.local"
+      annotations: {}
+      tls: []
+
+  persistence:
+    enabled: true
+    existingClaim: ""
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+    annotations: {}
+    selector: {}
+
+  logs:
+    logLevel: 1
+    logToStdErr: true
+
+    persistence:
+      enabled: true
+      existingClaim: ""
+      storageClass: ""
+      accessModes:
+        - ReadWriteOnce
+      size: 10Gi
+      annotations: {}
+      selector: {}
+
+  extraEnvVars: []
+
+  resources:
+    limits: {}
+    requests: {}
+
+  serviceAccountName: ""
+
+  podManagementPolicy: Parallel
+  podSecurityContext: {}
+  
+  podLabels: {}
+  podAnnotations: {}
+
+  affinity: |-
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ template "seaweedfs.name" . }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/component: server
+          topologyKey: kubernetes.io/hostname
+         
+  nodeSelector: |-
+    kubernetes.io/arch: amd64
+
+  tolerations: []
+
+  extraVolumes: []
+  extraVolumeMounts: []
+
+  sidecars: []
+  initContainers: []
+
+  priorityClassName: ""
+
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: {}
+
+  containerSecurityContext: {}
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    successThreshold: 1
+    failureThreshold: 4
+    timeoutSeconds: 10
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 45
+    successThreshold: 2
+    failureThreshold: 100
+    timeoutSeconds: 10
+
+  ingress:
+    enabled: false
+    className: ""
+    # host: false for "*" hostname
+    host: "master.seaweedfs.local"
+    annotations:  {}
+    tls: []
+
+cosi:
+  enabled: false
+  image: "ghcr.io/seaweedfs/seaweedfs-cosi-driver:v0.1.1"
+  driverName: "seaweedfs.objectstorage.k8s.io"
+  bucketClassName: "seaweedfs"
+  endpoint: ""
+  region: ""
+
+  sidecar:
+    image: gcr.io/k8s-staging-sig-storage/objectstorage-sidecar/objectstorage-sidecar:v20230130-v0.1.0-24-gc0cf995
+
+  # enable user & permission to s3 (need to inject to all services)
+  enableAuth: false
+  # set to the name of an existing kubernetes Secret with the s3 json config file
+  # should have a secret key called seaweedfs_s3_config with an inline json configure
+  existingConfigSecret: null
+
+  podSecurityContext: {}
+  containerSecurityContext: {}
+
+  extraVolumes: []
+  extraVolumeMounts: []

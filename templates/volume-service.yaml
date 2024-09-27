@@ -1,0 +1,34 @@
+{{- if .Values.volume.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "seaweedfs.name" . }}-volume
+  namespace: {{ $.Release.Namespace }}
+  labels:
+   {{- include "seaweedfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: volume
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  clusterIP: None
+  internalTrafficPolicy: {{ .Values.volume.internalTrafficPolicy | default "Cluster" }}
+  ports:
+  - name: "swfs-volume"
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: "swfs-volume-grpc"
+    port: 18080
+    targetPort: 18080
+    protocol: TCP
+{{- if .Values.metrics.enabled }}
+  - name: "metrics"
+    port: 9327
+    targetPort: 9327
+    protocol: TCP
+{{- end }}
+  selector:
+    {{- include "seaweedfs.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: volume
+{{- end }}

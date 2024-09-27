@@ -1,0 +1,61 @@
+{{- if .Values.server.enabled }}
+{{- if .Values.server.ingress.enabled }}
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion }}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion }}
+apiVersion: networking.k8s.io/v1beta1
+{{- else }}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: ingress-{{ template "seaweedfs.name" . }}-server
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.server.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.server.ingress.className | quote }}
+  tls:
+    {{- .Values.server.ingress.tls | default list | toYaml | nindent 4 }}
+  rules:
+  - http:
+      paths:
+      - path: /sw-master/?(.*)
+        pathType: ImplementationSpecific
+        backend:
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion }}
+          service:
+            name: {{ template "seaweedfs.name" . }}-server
+            port:
+              number: 9333
+{{- else }}
+          serviceName: {{ template "seaweedfs.name" . }}-server
+          servicePort: 9333
+{{- end }}
+{{- if .Values.server.filer }}
+      - path: /sw-filer/?(.*)
+        pathType: ImplementationSpecific
+        backend:
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion }}
+          service:
+            name: {{ template "seaweedfs.name" . }}-server
+            port:
+              number: 8888
+{{- else }}
+          serviceName: {{ template "seaweedfs.name" . }}-server
+          servicePort: 8888
+{{- end }}
+{{- end }}
+{{- if .Values.server.ingress.host }}
+      host: {{ .Values.server.ingress.host }}
+{{- end }}
+{{- end }}
+{{- end }}
