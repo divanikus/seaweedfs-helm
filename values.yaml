@@ -331,14 +331,7 @@ volume:
         accessModes:
           - ReadWriteOnce
         size: 50Gi
-      idx:
-        existingClaim: ""
-        storageClass: ""
-        accessModes:
-          - ReadWriteOnce
-        size: 20Gi
-        annotations: {}
-        selector: {}
+      idx: {}
 
   logs:
     logLevel: 1

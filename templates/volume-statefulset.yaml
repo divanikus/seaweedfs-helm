@@ -206,9 +206,9 @@ spec:
             {{- end }}
           ports:
             - containerPort: 8080
-              name: swfs-volume
+              name: swfs-vlm
             - containerPort: 18080
-              name: swfs-volume-grpc
+              name: swfs-vlm-grpc
             {{- if .Values.metrics.enabled }}
             - containerPort: 9327
               name: metrics

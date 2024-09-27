@@ -161,9 +161,9 @@ spec:
             {{- end }}
           ports:
             - containerPort: 9333
-              name: swfs-master
+              name: swfs-mstr
             - containerPort: 19333
-              name: swfs-master-grpc
+              name: swfs-mstr-grpc
             {{- if .Values.metrics.enabled }}
             - containerPort: 9327
               name: metrics

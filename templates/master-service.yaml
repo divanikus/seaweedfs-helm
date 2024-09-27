@@ -19,11 +19,11 @@ spec:
   clusterIP: None
   publishNotReadyAddresses: true
   ports:
-  - name: "swfs-master"
+  - name: "swfs-mstr"
     port: 9333
     targetPort: 9333
     protocol: TCP
-  - name: "swfs-master-grpc"
+  - name: "swfs-mstr-grpc"
     port: 19333
     targetPort: 19333
     protocol: TCP
