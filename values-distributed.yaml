@@ -1,0 +1,27 @@
+master:
+  enabled: true
+
+filer:
+  enabled: true
+  s3:
+    enabled: true
+
+volume:
+  enabled: true
+
+  nodeSets:
+  - name: hdd
+    replicas: 1
+    args:
+      rack: hdd-rack
+  
+    persistence:
+      enabled: true
+      disks:
+      - disk: hdd
+        max: 0
+        existingClaim: ""
+        storageClass: ""
+        accessModes:
+          - ReadWriteOnce
+        size: 50Gi
