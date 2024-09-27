@@ -15,7 +15,7 @@ commonLabels: {}
 commonAnnotations: {}
 
 rbac:
-  create: false
+  create: true
 
 serviceAccount:
   create: true
@@ -28,7 +28,7 @@ logLevel: 1
 restartPolicy: Always
 
 security:
-  enabled: true
+  enabled: false
   config:
     jwtSigning:
       volumeWrite: true
@@ -50,9 +50,9 @@ security:
       enabled: false
 
 metrics:
-  enabled: true
+  enabled: false
   serviceMonitor:
-    enabled: true
+    enabled: false
     interval: 30s
     scrapeTimeout: 5s
     selector: {}
@@ -188,7 +188,7 @@ filer:
     storageClass: ""
     accessModes:
       - ReadWriteOnce
-    size: 1Gi
+    size: 10Gi
     annotations: {}
     selector: {}
 
@@ -272,7 +272,7 @@ filer:
     annotations: {}
 
   s3:
-    enabled: true
+    enabled: false
     args:
       allowEmptyFolder: false
 
@@ -310,7 +310,7 @@ filer:
       tls: []
 
 volume:
-  enabled: true
+  enabled: false
 
   args: 
     dataCenter: dc1
@@ -330,7 +330,7 @@ volume:
         storageClass: ""
         accessModes:
           - ReadWriteOnce
-        size: 10Gi
+        size: 50Gi
       idx:
         existingClaim: ""
         storageClass: ""
@@ -520,7 +520,7 @@ s3:
     timeoutSeconds: 10
 
 server:
-  enabled: true
+  enabled: false
   replicas: 1
   args:
     ip.bind: "0.0.0.0"
@@ -592,7 +592,7 @@ server:
     storageClass: ""
     accessModes:
       - ReadWriteOnce
-    size: 10Gi
+    size: 20Gi
     annotations: {}
     selector: {}
 

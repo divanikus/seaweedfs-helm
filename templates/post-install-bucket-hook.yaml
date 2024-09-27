@@ -41,6 +41,17 @@ spec:
                 fieldPath: metadata.namespace
           - name: SEAWEEDFS_FULLNAME
             value: "{{ template "seaweedfs.name" . }}"
+          {{- if .Values.extraEnvVars }}
+          {{- range $key, $value := .Values.extraEnvVars }}
+          - name: {{ $key }}
+          {{- if kindIs "string" $value }}
+            value: {{ $value | quote }}
+          {{- else }}
+            valueFrom:
+              {{ toYaml $value | nindent 14 | trim }}
+          {{- end -}}
+          {{- end }}
+          {{- end }}
         command:
           - "/bin/sh"
           - "-ec"
@@ -54,7 +65,7 @@ spec:
             {{- else if $.Values.server.enabled }}
             -master={{ range $index := until ($.Values.server.replicas | int) }}${SEAWEEDFS_FULLNAME}-server-{{ $index }}.${SEAWEEDFS_FULLNAME}-server.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.server.replicas | int) 1) }},{{ end }}{{ end }}
             {{- else }}
-            -help
+            
             {{- end }}
           {{- end }}
         {{- if .Values.security.enabled }}
