@@ -22,26 +22,26 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  ingressClassName: {{ .Values.master.ingress.className | quote }}
+  ingressClassName: {{ .Values.master.ingress.className }}
   tls:
     {{- .Values.master.ingress.tls | default list | toYaml | nindent 4 }}
   rules:
-    - http:
-        paths:
-          - path: /sw-master/?(.*)
-            pathType: ImplementationSpecific
-            backend:
+  - http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
 {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion }}
-              service:
-                name: {{ template "seaweedfs.name" . }}-master
-                port:
-                  number: 9333
+          service:
+            name: {{ template "seaweedfs.name" . }}-master
+            port:
+              number: 9333
 {{- else }}
-              serviceName: {{ template "seaweedfs.name" . }}-master
-              servicePort: 9333
+          serviceName: {{ template "seaweedfs.name" . }}-master
+          servicePort: 9333
 {{- end }}
 {{- if .Values.master.ingress.host }}
-      host: {{ .Values.master.ingress.host }}
+    host: {{ .Values.master.ingress.host }}
 {{- end }}
 {{- end }}
 {{- end }}

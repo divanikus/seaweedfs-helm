@@ -22,7 +22,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  ingressClassName: {{ $ingress.className | quote }}
+  ingressClassName: {{ $ingress.className }}
   tls:
     {{- $ingress.tls | default list | toYaml | nindent 4 }}
   rules:

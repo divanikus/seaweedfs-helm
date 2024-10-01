@@ -8,7 +8,6 @@ metadata:
     {{- include "seaweedfs.labels" . | nindent 4 }}
     app.kubernetes.io/component: s3
 spec:
-  serviceName: {{ template "seaweedfs.name" . }}-s3
   replicas: {{ .Values.s3.replicas }}
   strategy: {{- toYaml .Values.s3.updateStrategy | nindent 4 }}
   selector:
@@ -118,10 +117,11 @@ spec:
               {{- range $key, $value := .Values.s3.args }}
               -{{ $key }}{{ template "args.value.render" $value }} \
               {{- end }}
-              -ip=${POD_IP} \
               -port=8333 \
               {{- if and .Values.security.enabled .Values.security.tls.enabled }}
-              -port.https=18333 \
+              {{- if not .Values.s3.onlyHttps }}
+              -port.https=18443 \
+              {{- end }}
               -cert.file=/usr/local/share/ca-certificates/client/tls.crt \
               -key.file=/usr/local/share/ca-certificates/client/tls.key \
               {{- end }}
@@ -171,8 +171,10 @@ spec:
           ports:
             - containerPort: 8333
               name: swfs-s3
-            {{- if and .Values.security.enabled .Values.security.tls.enabled }}
             - containerPort: 18333
+              name: swfs-s3-grpc
+            {{- if and .Values.security.enabled .Values.security.tls.enabled (not .Values.s3.onlyHttps) }}
+            - containerPort: 18443
               name: swfs-s3-tls
             {{- end }}
             {{- if .Values.metrics.enabled }}
@@ -183,16 +185,16 @@ spec:
           readinessProbe:
             httpGet:
               path: /status
-              port: 8888
-              scheme: HTTP
+              port: 8333
+              scheme: HTTP{{ if .Values.s3.onlyHttps }}S{{ end }}
             {{- omit .Values.s3.readinessProbe "enabled" | toYaml | nindent 12 }}
           {{- end }}
           {{- if .Values.s3.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
               path: /status
-              port: 8888
-              scheme: HTTP
+              port: 8333
+              scheme: HTTP{{ if .Values.s3.onlyHttps }}S{{ end }}
             {{- omit .Values.s3.livenessProbe "enabled" | toYaml | nindent 12 }}
           {{- end }}
           {{- with .Values.s3.resources }}

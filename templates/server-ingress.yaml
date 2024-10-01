@@ -22,13 +22,13 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  ingressClassName: {{ .Values.server.ingress.className | quote }}
+  ingressClassName: {{ .Values.server.ingress.className }}
   tls:
     {{- .Values.server.ingress.tls | default list | toYaml | nindent 4 }}
   rules:
   - http:
       paths:
-      - path: /sw-master/?(.*)
+      - path: /sw-master
         pathType: ImplementationSpecific
         backend:
 {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion }}
@@ -41,7 +41,7 @@ spec:
           servicePort: 9333
 {{- end }}
 {{- if .Values.server.filer }}
-      - path: /sw-filer/?(.*)
+      - path: /sw-filer
         pathType: ImplementationSpecific
         backend:
 {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion }}

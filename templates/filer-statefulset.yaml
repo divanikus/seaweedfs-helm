@@ -127,7 +127,9 @@ spec:
               -s3.{{ $key }}{{ template "args.value.render" $value }} \
               {{- end }}
               {{- if and .Values.security.enabled .Values.security.tls.enabled }}
-              -s3.port.https=18333 \
+              {{- if not .Values.filer.s3.onlyHttps }}
+              -s3.port.https=18443 \
+              {{- end }}
               -s3.cert.file=/usr/local/share/ca-certificates/client/tls.crt \
               -s3.key.file=/usr/local/share/ca-certificates/client/tls.key \
               {{- end }}
@@ -178,7 +180,7 @@ spec:
               mountPath: /usr/local/share/ca-certificates/client/
             {{- end }}
             {{- end }}
-            {{- if .Values.filer.s3.auth.enabled }}
+            {{- if and .Values.filer.s3.enabled .Values.filer.s3.auth.enabled }}
             - name: config-users
               mountPath: /etc/seaweedfs/s3/
               readOnly: true
@@ -194,8 +196,10 @@ spec:
             {{- if .Values.filer.s3.enabled }}
             - containerPort: 8333
               name: swfs-s3
-            {{- if and .Values.security.enabled .Values.security.tls.enabled }}
             - containerPort: 18333
+              name: swfs-s3-grpc
+            {{- if and .Values.security.enabled .Values.security.tls.enabled (not .Values.filer.s3.onlyHttps) }}
+            - containerPort: 18443
               name: swfs-s3-tls
             {{- end }}
             {{- end }}

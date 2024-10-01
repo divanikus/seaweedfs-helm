@@ -32,10 +32,14 @@ spec:
     port: 8333
     targetPort: 8333
     protocol: TCP
-  {{- if and .Values.security.enabled .Values.security.tls.enabled }}
-  - name: "swfs-s3-tls"
+  - name: "swfs-s3-grpc"
     port: 18333
     targetPort: 18333
+    protocol: TCP
+  {{- if and .Values.security.enabled .Values.security.tls.enabled }}
+  - name: "swfs-s3-tls"
+    port: 18443
+    targetPort: 18443
     protocol: TCP
   {{- end }}
   {{- end }}

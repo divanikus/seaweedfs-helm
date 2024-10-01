@@ -4,7 +4,7 @@
 
 image:
   repository: chrislusf/seaweedfs
-  tag: "3.73"
+  tag: "3.74"
   pullPolicy: IfNotPresent
   pullSecrets: []
 
@@ -300,6 +300,7 @@ filer:
           actions:
           - Read
     
+    onlyHttps: false
     auditLogConfig: {}
 
     ingress:
@@ -415,7 +416,7 @@ s3:
     allowEmptyFolder: false
 
   auth: 
-    enabled: false
+    enabled: true
     existingConfigSecret: ""
 
     config: |-
@@ -439,9 +440,10 @@ s3:
         - Read
   
   auditLogConfig: {}
+  onlyHttps: false
 
   ingress:
-    enabled: true
+    enabled: false
     className: ""
     host: "seaweedfs.cluster.local"
     annotations: {}
@@ -567,6 +569,7 @@ server:
           - Read
     
     auditLogConfig: {}
+    onlyHttps: false
 
     ingress:
       enabled: false

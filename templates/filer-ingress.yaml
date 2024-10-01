@@ -22,13 +22,13 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  ingressClassName: {{ .Values.filer.ingress.className | quote }}
+  ingressClassName: {{ .Values.filer.ingress.className  }}
   tls:
     {{- .Values.filer.ingress.tls | default list | toYaml | nindent 4 }}
   rules:
   - http:
       paths:
-      - path: /sw-filer/?(.*)
+      - path: /
         pathType: ImplementationSpecific
         backend:
 {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion }}
