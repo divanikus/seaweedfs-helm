@@ -55,7 +55,6 @@ metrics:
     enabled: false
     interval: 30s
     scrapeTimeout: 5s
-    selector: {}
     labels: {}
   dashboards:
     enabled: false
