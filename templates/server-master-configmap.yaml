@@ -1,4 +1,4 @@
-{{- if .Values.server.enabled }}
+{{- if and .Values.server.enabled .Values.server.master.config }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -11,5 +11,5 @@ metadata:
     {{- end }}
 data:
   master.toml: |-
-    {{- .Values.server.master | nindent 4 }}
+    {{- .Values.server.master.config | nindent 4 }}
 {{- end }}

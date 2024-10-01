@@ -36,7 +36,7 @@ spec:
     port: 18333
     targetPort: 18333
     protocol: TCP
-  {{- if and .Values.security.enabled .Values.security.tls.enabled }}
+  {{- if and .Values.security.enabled .Values.security.tls.enabled (not .Values.filer.s3.onlyHttps) }}
   - name: "swfs-s3-tls"
     port: 18443
     targetPort: 18443

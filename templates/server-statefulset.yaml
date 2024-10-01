@@ -113,7 +113,7 @@ spec:
               {{- end }}
               -v={{ default .Values.logLevel .Values.server.logs.logLevel }} \
               server \
-              {{- if .Values.server.filer }}
+              {{- if .Values.server.filer.enabled }}
               -filer \
               {{- end }}
               -dir=/data \
@@ -123,6 +123,16 @@ spec:
               {{- range $key, $value := .Values.server.args }}
               {{- $kind := kindOf $value }}
               -{{ $key }}{{ template "args.value.render" $value }} \
+              {{- end }}
+              {{- range $key, $value := .Values.server.master.args }}
+              {{- $kind := kindOf $value }}
+              -master.{{ $key }}{{ template "args.value.render" $value }} \
+              {{- end }}
+              {{- if .Values.server.filer.enable }}
+              {{- range $key, $value := .Values.server.filer.args }}
+              {{- $kind := kindOf $value }}
+              -filer.{{ $key }}{{ template "args.value.render" $value }} \
+              {{- end }}
               {{- end }}
               {{- if .Values.server.s3.enabled }}
               -s3 \             
@@ -154,13 +164,13 @@ spec:
             - name: logs
               mountPath: /logs
             {{- end }}
-            {{- if .Values.server.master }}
+            {{- if .Values.server.master.config }}
             - name: server-master-config
               readOnly: true
               mountPath: /etc/seaweedfs/master.toml
               subPath: master.toml
             {{- end }}
-           {{- if .Values.server.filer }}
+            {{- if and .Values.server.filer.enabled .Values.server.filer.config }}
             - name: server-filer-config
               readOnly: true
               mountPath: /etc/seaweedfs/filer.toml
@@ -202,7 +212,7 @@ spec:
               name: swfs-srv
             - containerPort: 19333
               name: swfs-srv-grpc
-            {{- if .Values.server.filer }}
+            {{- if .Values.server.filer.enabled }}
             - containerPort: 8888
               name: swfs-filer
             - containerPort: 18888
@@ -271,12 +281,12 @@ spec:
           persistentVolumeClaim:
             claimName: {{ .Values.server.persistence.existingClaim }}
         {{- end }}
-        {{- if .Values.server.master }}
+        {{- if .Values.server.master.config }}
         - name: server-master-config
           configMap:
             name: {{ template "seaweedfs.name" . }}-server-master-config
         {{- end }}
-        {{- if .Values.server.filer }}
+        {{- if and .Values.server.filer.enabled .Values.server.filer.config }}
         - name: server-filer-config
           secret:
             secretName: {{ template "seaweedfs.name" . }}-server-filer-config
