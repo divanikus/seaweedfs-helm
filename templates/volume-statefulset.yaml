@@ -152,7 +152,7 @@ spec:
               {{- if $volume.persistence.idx }}
               -dir.idx=/data/idx \
               {{- end }}
-              -max={{- range $idx, $disk := $volume.persistence.disks }}{{if ne $idx 0}},{{end}}{{ $disk.max }}{{end}} \
+              -max={{- range $idx, $disk := $volume.persistence.disks }}{{if ne $idx 0}},{{end}}{{ $disk.max | default 0 }}{{end}} \
               {{- end }}
               {{- if .Values.master.enabled }}
               -mserver={{ range $index := until (.Values.master.replicas | int) }}${SEAWEEDFS_FULLNAME}-master-{{ $index }}.${SEAWEEDFS_FULLNAME}-master.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.master.replicas | int) 1) }},{{ end }} \{{ end }}
@@ -259,13 +259,13 @@ spec:
           emptyDir: {}
         {{- else }}
         {{- range $idx, $disk := $volume.persistence.disks }}
-        {{- if not (eq .existingClaim "") }}
+        {{- if .existingClaim }}
         - name: data-{{ $idx }}-{{ $disk.disk }}
           persistentVolumeClaim:
             claimName: {{ .existingClaim }}
         {{- end }}
         {{- end }}
-        {{- if and $volume.persistence.idx (not (eq $volume.persistence.idx.existingClaim "")) }}
+        {{- if and $volume.persistence.idx $volume.persistence.idx.existingClaim }}
         - name: data-idx
           persistentVolumeClaim:
             claimName: {{ $volume.persistence.idx.existingClaim }}
@@ -309,7 +309,7 @@ spec:
   volumeClaimTemplates:
     {{- if $disks_pvc_exists }}
     {{- range $idx, $disk := $volume.persistence.disks }}
-    {{- if eq .existingClaim "" }}
+    {{- if not .existingClaim }}
     - metadata:
         name: data-{{ $idx }}-{{ $disk.disk }}
         {{- with $disk.annotations }}
