@@ -40,7 +40,7 @@ spec:
       {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
-      restartPolicy: {{ coalesce  $volume.restartPolicy .Values.volume.restartPolicy .Values.restartPolicy }}
+      restartPolicy: {{ coalesce $volume.restartPolicy .Values.volume.restartPolicy .Values.restartPolicy }}
       {{- $affinity := (default .Values.volume.affinity $volume.affinity) }}
       {{- if $affinity }}
       affinity:
@@ -147,12 +147,12 @@ spec:
               -dir=/data \
               -max=0 \
               {{- else }}
-              -disk={{- range $idx, $disk := $volume.persistence.disks }}{{if ne $idx 0}},{{end}}{{ $disk.disk }}{{end}} \
-              -dir={{- range $idx, $disk := $volume.persistence.disks }}{{if ne $idx 0}},{{end}}/data/{{ $idx }}-{{ $disk.disk }}{{end}} \
+              -disk={{- range $idx, $disk := $volume.persistence.disks }}{{ if ne $idx 0 }},{{ end }}{{ $disk.disk }}{{ end }} \
+              -dir={{- range $idx, $disk := $volume.persistence.disks }}{{ if ne $idx 0 }},{{ end }}/data/{{ $idx }}-{{ $disk.disk }}{{ end }} \
               {{- if $volume.persistence.idx }}
               -dir.idx=/data/idx \
               {{- end }}
-              -max={{- range $idx, $disk := $volume.persistence.disks }}{{if ne $idx 0}},{{end}}{{ $disk.max | default 0 }}{{end}} \
+              -max={{- range $idx, $disk := $volume.persistence.disks }}{{ if ne $idx 0 }},{{ end }}{{ $disk.max | default 0 }}{{ end }} \
               {{- end }}
               {{- if .Values.master.enabled }}
               -mserver={{ range $index := until (.Values.master.replicas | int) }}${SEAWEEDFS_FULLNAME}-master-{{ $index }}.${SEAWEEDFS_FULLNAME}-master.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.master.replicas | int) 1) }},{{ end }} \{{ end }}
@@ -303,7 +303,7 @@ spec:
         {{- include "common.tplvalues.render" (dict "value" $nodeSelector "context" $) | nindent 8 }}
       {{- end }}
   {{- $disks_pvc_exists := include "volume.disks_pvc_exists" $volume -}}
-  {{- $idx_pvc_exists  := include "volume.idx_pvc_exists" $volume -}}
+  {{- $idx_pvc_exists := include "volume.idx_pvc_exists" $volume -}}
   {{- $logs_pvc_exists := include "volume.logs_pvc_exists" $logs -}}
   {{- if or $disks_pvc_exists $idx_pvc_exists $logs_pvc_exists }}
   volumeClaimTemplates:
@@ -318,7 +318,7 @@ spec:
         {{- end }}
       spec:
         accessModes:
-        {{- range $disk.accessModes }}
+        {{- range $disk.accessModes | default (list "ReadWriteOnce") }}
           - {{ . | quote }}
         {{- end }}
         {{- if $disk.storageClass }}
