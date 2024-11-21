@@ -4,7 +4,7 @@
 
 image:
   repository: chrislusf/seaweedfs
-  tag: "3.74"
+  tag: "3.80"
   pullPolicy: IfNotPresent
   pullSecrets: []
 
@@ -111,7 +111,7 @@ master:
 
   podManagementPolicy: Parallel
   podSecurityContext: {}
-  
+
   podLabels: {}
   podAnnotations: {}
 
@@ -124,7 +124,7 @@ master:
               app.kubernetes.io/instance: {{ .Release.Name }}
               app.kubernetes.io/component: master
           topologyKey: kubernetes.io/hostname
-         
+
   nodeSelector: |-
     kubernetes.io/arch: amd64
 
@@ -215,7 +215,7 @@ filer:
 
   podManagementPolicy: Parallel
   podSecurityContext: {}
-  
+
   podLabels: {}
   podAnnotations: {}
 
@@ -228,7 +228,7 @@ filer:
               app.kubernetes.io/instance: {{ .Release.Name }}
               app.kubernetes.io/component: filer
           topologyKey: kubernetes.io/hostname
-         
+
   nodeSelector: |-
     kubernetes.io/arch: amd64
 
@@ -275,7 +275,7 @@ filer:
     args:
       allowEmptyFolder: false
 
-    auth: 
+    auth:
       enabled: true
       existingConfigSecret: ""
 
@@ -298,7 +298,7 @@ filer:
             secretKey: ""
           actions:
           - Read
-    
+
     onlyHttps: false
     auditLogConfig: {}
 
@@ -309,10 +309,21 @@ filer:
       annotations: {}
       tls: []
 
+  sync:
+    enabled: false
+    resources:
+      limits: {}
+      requests: {}
+    args: []
+    podSecurityContext: {}
+    podLabels: {}
+    nodeSelector: |-
+      kubernetes.io/arch: amd64
+
 volume:
   enabled: false
 
-  args: 
+  args:
     dataCenter: dc1
 
   nodeSets:
@@ -320,7 +331,7 @@ volume:
     replicas: 1
     args:
       rack: rack1
-  
+
     persistence:
       enabled: false
       disks:
@@ -357,7 +368,7 @@ volume:
 
   podManagementPolicy: Parallel
   podSecurityContext: {}
-  
+
   podLabels: {}
   podAnnotations: {}
 
@@ -370,7 +381,7 @@ volume:
               app.kubernetes.io/instance: {{ .Release.Name }}
               app.kubernetes.io/component: volume
           topologyKey: kubernetes.io/hostname
-         
+
   nodeSelector: |-
     kubernetes.io/arch: amd64
 
@@ -414,7 +425,7 @@ s3:
     ip.bind: "0.0.0.0"
     allowEmptyFolder: false
 
-  auth: 
+  auth:
     enabled: true
     existingConfigSecret: ""
 
@@ -437,7 +448,7 @@ s3:
           secretKey: ""
         actions:
         - Read
-  
+
   auditLogConfig: {}
   onlyHttps: false
 
@@ -473,12 +484,12 @@ s3:
   serviceAccountName: ""
 
   podSecurityContext: {}
-  
+
   podLabels: {}
   podAnnotations: {}
 
   affinity: ""
-         
+
   nodeSelector: |-
     kubernetes.io/arch: amd64
 
@@ -566,7 +577,7 @@ server:
     args:
       allowEmptyFolder: false
 
-    auth: 
+    auth:
       enabled: true
       existingConfigSecret: ""
 
@@ -589,7 +600,7 @@ server:
             secretKey: ""
           actions:
           - Read
-    
+
     auditLogConfig: {}
     onlyHttps: false
 
@@ -634,7 +645,7 @@ server:
 
   podManagementPolicy: Parallel
   podSecurityContext: {}
-  
+
   podLabels: {}
   podAnnotations: {}
 
@@ -647,7 +658,7 @@ server:
               app.kubernetes.io/instance: {{ .Release.Name }}
               app.kubernetes.io/component: server
           topologyKey: kubernetes.io/hostname
-         
+
   nodeSelector: |-
     kubernetes.io/arch: amd64
 
