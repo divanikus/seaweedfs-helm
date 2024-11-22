@@ -1,0 +1,105 @@
+{{- if .Values.filer.sync.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "seaweedfs.name" . }}-filer-sync
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: filer-sync
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "seaweedfs.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: filer-sync
+  template:
+    metadata:
+      labels:
+      {{- include "seaweedfs.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: filer-sync
+      {{- with .Values.commonLabels }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.filer.sync.podLabels }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      annotations:
+      {{- with .Values.commonAnnotations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.filer.sync.podAnnotations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: {{ default .Values.restartPolicy .Values.filer.sync.restartPolicy }}
+      {{- if .Values.filer.sync.affinity }}
+      affinity:
+        {{ tpl .Values.filer.sync.affinity . | nindent 8 | trim }}
+      {{- end }}
+      {{- if .Values.filer.sync.tolerations }}
+      tolerations:
+        {{ tpl .Values.filer.sync.tolerations . | nindent 8 | trim }}
+      {{- end }}
+      {{- include "seaweedfs.imagePullSecrets" . | nindent 6 }}
+      terminationGracePeriodSeconds: 60
+      {{- if .Values.filer.sync.priorityClassName }}
+      priorityClassName: {{ .Values.filer.sync.priorityClassName }}
+      {{- end }}
+      {{- if .Values.serviceAccount.create }}
+      {{- /* using default serviceAccount name */}}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      {{- if .Values.filer.sync.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.filer.sync.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: seaweedfs
+          image: {{ template "common.image" . }}
+          imagePullPolicy: {{ default "IfNotPresent" .Values.image.pullPolicy }}
+          env:
+            {{- if .Values.filer.sync.extraEnvVars }}
+            {{- range $key, $value := .Values.filer.sync.extraEnvVars }}
+            - name: {{ $key }}
+            {{- if kindIs "string" $value }}
+              value: {{ $value | quote }}
+            {{- else }}
+              valueFrom:
+                {{ toYaml $value | nindent 16 | trim }}
+            {{- end -}}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.extraEnvVars }}
+            {{- range $key, $value := .Values.extraEnvVars }}
+            - name: {{ $key }}
+            {{- if kindIs "string" $value }}
+              value: {{ $value | quote }}
+            {{- else }}
+              valueFrom:
+                {{ toYaml $value | nindent 16 | trim }}
+            {{- end -}}
+            {{- end }}
+            {{- end }}
+          command:
+            - "/bin/sh"
+            - "-ec"
+            - |
+              exec /usr/bin/weed \
+              filer.sync \
+              {{- range $value := .Values.filer.sync.args }}
+              {{ $value }} \
+              {{- end }}
+          {{- with .Values.filer.sync.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.filer.sync.podSecurityContext.enabled }}
+          securityContext: {{- omit .Values.filer.sync.podSecurityContext "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+      {{- if .Values.filer.sync.nodeSelector }}
+      nodeSelector:
+        {{- include "common.tplvalues.render" (dict "value" .Values.filer.sync.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+{{- end }}
