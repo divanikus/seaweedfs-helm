@@ -4,7 +4,7 @@
 
 image:
   repository: chrislusf/seaweedfs
-  tag: "3.80"
+  tag: ""
   pullPolicy: IfNotPresent
   pullSecrets: []
 
