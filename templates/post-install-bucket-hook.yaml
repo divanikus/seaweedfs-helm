@@ -17,7 +17,7 @@ spec:
       labels:
         {{- include "seaweedfs.labels" . | nindent 8 }}
     spec:
-      {{- include "seaweedfs.imagePullSecrets" . | nindent 6 -}}
+      {{- include "seaweedfs.imagePullSecrets" . | nindent 6 }}
       restartPolicy: Never
       {{- if .Values.filer.podSecurityContext.enabled }}
       securityContext: {{- omit (ternary .Values.server.podSecurityContext .Values.master.podSecurityContext .Values.server.enabled) . "enabled" | toYaml | nindent 8 }}
@@ -56,16 +56,36 @@ spec:
           - "/bin/sh"
           - "-ec"
           - |
+            wait_for_service() {
+              local url=$1
+              local max_attempts=60  # 5 minutes total (5s * 60)
+              local attempt=1
+
+              echo "Waiting for service at $url..."
+              while [ $attempt -le $max_attempts ]; do
+                if wget -q --spider "$url" >/dev/null 2>&1; then
+                  echo "Service at $url is up!"
+                  return 0
+                fi
+                echo "Attempt $attempt: Service not ready yet, retrying in 5s..."
+                sleep 5
+                attempt=$((attempt + 1))
+              done
+              echo "Service at $url failed to become ready within 5 minutes"
+              exit 1
+            }
+            wait_for_service "http://${WEED_CLUSTER_SW_MASTER:-seaweedfs-master:9333}/cluster/status"
+            wait_for_service "http://${WEED_CLUSTER_SW_FILER:-seaweedfs-filer-client:8888}"
           {{- range $idx, $name := $createBuckets }}
             exec /bin/echo \
-            "s3.bucket.create --name {{ $name }}" |\
+            "s3.bucket.create --name {{ $name.name }}" |\
             /usr/bin/weed shell \
             {{- if $.Values.master.enabled }}
             -master={{ range $index := until ($.Values.master.replicas | int) }}${SEAWEEDFS_FULLNAME}-master-{{ $index }}.${SEAWEEDFS_FULLNAME}-master.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.master.replicas | int) 1) }},{{ end }}{{ end }}
             {{- else if $.Values.server.enabled }}
             -master={{ range $index := until ($.Values.server.replicas | int) }}${SEAWEEDFS_FULLNAME}-server-{{ $index }}.${SEAWEEDFS_FULLNAME}-server.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.server.replicas | int) 1) }},{{ end }}{{ end }}
             {{- else }}
-            
+
             {{- end }}
           {{- end }}
         {{- if .Values.security.enabled }}

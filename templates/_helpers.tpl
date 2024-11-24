@@ -67,7 +67,7 @@ Create the name of the service account to use
 {{- if kindIs "string" .Values.image.pullSecrets }}
 imagePullSecrets:
   - name: {{ .Values.image.pullSecrets }}
-{{- else }}
+{{- else -}}
 imagePullSecrets:
 {{- range .Values.image.pullSecrets }}
   - name: {{ . }}
