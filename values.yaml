@@ -524,6 +524,11 @@ s3:
     failureThreshold: 100
     timeoutSeconds: 10
 
+  # You may specify buckets to be created during the install process.
+  # createBuckets:
+  # - name: bucket-a
+  # - name: bucket-b
+
 server:
   enabled: false
   replicas: 1

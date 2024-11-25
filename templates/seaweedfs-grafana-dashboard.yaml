@@ -12,7 +12,7 @@ items:
     name: {{ printf "%s" $dashboardName | lower | replace "_" "-" }}
     namespace: {{ $.Release.Namespace }}
     labels:
-     grafana_dashboard: "1"
+      grafana_dashboard: "1"
   data:
     {{ $dashboardName }}.json: {{ $.Files.Get $path | toJson }}
 {{- end }}

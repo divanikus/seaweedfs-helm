@@ -1,8 +1,138 @@
 # seaweedfs
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.80](https://img.shields.io/badge/AppVersion-3.80-informational?style=flat-square)
+![Version: 0.1.1](https://img.shields.io/badge/Version-0.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.80](https://img.shields.io/badge/AppVersion-3.80-informational?style=flat-square)
 
 SeaweedFS is a simple and highly scalable distributed file system.
+
+## Maintainers
+
+| Name | Email | Url |
+| ---- | ------ | --- |
+| Andrey P. | <richter.einfach@pm.me> |  |
+| Juri Malinovski | <coil93@gmail.com> |  |
+
+## Getting Started
+
+### Clone the helm repo
+
+```bash
+git clone https://github.com/divanikus/seaweedfs-helm.git
+```
+
+### Install the helm chart
+
+```bash
+helm install seaweedfs seaweedfs-helm
+```
+
+### (Recommended) Provide custom `values-custom.yaml`
+
+```bash
+helm install -f values-custom.yaml seaweedfs seaweedfs-helm
+```
+
+## Differences compared with the official seaweedfs helm chart
+
+* Cut a lot of unnecessary settings like redefining port numbers of the services to make values.yaml less verbose.
+* Tried to be more consistent in all block of options for each module. It also boils down to have PVCs only, but with same options for each module. Disabling persistence will force emptyDir instead.
+* Made AIO module (server) for really small setups like dev environments. You should be able to plug it in into a distributed setup too, if you really want.
+* Replaced environment vars for settings with actual config files stored within secrets and configmaps. Should be much easier to say connect to a specific filer storage, supplying it's creds through secret.
+* Made an ability to directly pass args to weed process within values.yaml. Should add lots of flexibility, though might be a little bit controversial. I'm a little confused if it is ok to do that.
+* Made it possible to have nodeSets with different settings/args for volume servers. You can specify settings in the global block and override it in a nodeSet.
+* [cross-cluster continuous synchronization([https://github.com/seaweedfs/seaweedfs/wiki/Filer-Active-Active-cross-cluster-continuous-synchronization] support.
+
+## Prerequisites
+### Database
+
+leveldb is the default database, this supports multiple filer replicas that will [sync automatically](https://github.com/seaweedfs/seaweedfs/wiki/Filer-Store-Replication), with some [limitations](https://github.com/seaweedfs/seaweedfs/wiki/Filer-Store-Replication#limitation).
+
+When the [limitations](https://github.com/seaweedfs/seaweedfs/wiki/Filer-Store-Replication#limitation) apply, or for a large number of filer replicas, an external datastore is recommended.
+```
+
+## Notes
+
+On production k8s deployment you will want each pod to have a different host, especially the volume server and the masters, all pods (master/volume/filer)
+should have anti-affinity rules to disallow running multiple component pods on the same host.
+If you still want to run multiple pods of the same component (master/volume/filer) on the same host, please set/update the corresponding affinity rule in values.yaml to an empty one:
+
+```affinity: ""```
+
+## S3 configuration
+
+To enable an s3 endpoint for your filer with a default install add the following to your values.yaml:
+
+```yaml
+filer:
+  s3:
+    enabled: true
+```
+
+### Enabling authentication to S3
+
+To enable authentication for S3, you have two options:
+
+- let the helm chart create an admin user as well as a read-only user and anonymous user
+- provide your own s3 config.json file via an existing Kubernetes Secret
+
+### Use the default credentials for S3
+```yaml
+filer:
+  s3:
+    enabled: true
+    auth:
+      enabled: true
+      existingConfigSecret: my-s3-secret
+```
+
+### Create S3 buckets
+
+You may specify buckets to be created during the install process.
+
+```yaml
+s3:
+  enabled: true
+  createBuckets:
+    - name: bucket-a
+    - name: bucket-b
+```yaml
+
+### nodeSets example
+```yaml
+volume:
+  args:
+    dataCenter: hetzner
+    rack: rack1
+  nodeSets:
+  - name: node1
+    persistence:
+      enabled: true
+      disks:
+      - disk: hdd
+        size: 10Gi
+  - name: node2
+    persistence:
+      enabled: true
+      disks:
+      - disk: hdd
+        size: 10Gi
+  - name: node3
+    persistence:
+      enabled: true
+      disks:
+      - disk: hdd
+        size: 10Gi
+```
+
+### Cross-cluster active-passive syncronization
+```yaml
+filer:
+  sync:
+    enabled: true
+    args:
+    - -a seaweedfs-filer.seaweedfs.cluster1:8888
+    - -b seaweedfs-filer.seaweedfs.cluster2:8888
+    - -isActivePassive
+```
 
 ## Values
 
@@ -374,3 +504,8 @@ SeaweedFS is a simple and highly scalable distributed file system.
 | volume.tolerations | list | `[]` |  |
 | volume.updateStrategy.rollingUpdate | object | `{}` |  |
 | volume.updateStrategy.type | string | `"RollingUpdate"` |  |
+
+## Update README
+
+The `README.md` for this chart is generated by [helm-docs](https://github.com/norwoodj/helm-docs).
+To update the README, edit the `README.md.gotmpl` file and run the helm-docs command.
