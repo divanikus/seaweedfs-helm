@@ -43,6 +43,7 @@ helm install -f values-custom.yaml seaweedfs seaweedfs-helm
 * Made an ability to directly pass args to weed process within values.yaml. Should add lots of flexibility, though might be a little bit controversial. I'm a little confused if it is ok to do that.
 * Made it possible to have nodeSets with different settings/args for volume servers. You can specify settings in the global block and override it in a nodeSet.
 * [cross-cluster continuous synchronization](https://github.com/seaweedfs/seaweedfs/wiki/Filer-Active-Active-cross-cluster-continuous-synchronization) support.
+* Bucket TTL policy support.
 
 ### Prerequisites
 #### Database
@@ -87,12 +88,14 @@ filer:
 #### Create S3 buckets
 
 You may specify buckets to be created during the install process.
+You may optionally specify ttl policy for the bucket.
 
 ```yaml
 s3:
   enabled: true
   createBuckets:
     - name: bucket-a
+      ttl: 1d
     - name: bucket-b
 ```
 
@@ -136,6 +139,12 @@ filer:
     - -a seaweedfs-filer.seaweedfs.cluster1:8888
     - -b seaweedfs-filer.seaweedfs.cluster2:8888
     - -isActivePassive
+```
+
+### Enable [IAM gateway server](https://github.com/seaweedfs/seaweedfs/wiki/Amazon-IAM-API)
+```yaml
+iam:
+  enabled: true
 ```
 
 {{ template "chart.valuesSection" . }}

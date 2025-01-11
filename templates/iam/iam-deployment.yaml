@@ -1,0 +1,132 @@
+{{- if .Values.iam.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "seaweedfs.name" . }}-iam
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: iam
+  annotations: {{- toYaml .Values.iam.annotations | nindent 4 }}
+spec:
+  replicas: {{ .Values.iam.replicas }}
+  strategy: {{- toYaml .Values.iam.updateStrategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "seaweedfs.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: iam
+  template:
+    metadata:
+      labels:
+      {{- include "seaweedfs.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: iam
+      {{- with .Values.commonLabels }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.iam.podLabels }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      annotations:
+      {{- with .Values.commonAnnotations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.iam.podAnnotations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: {{ default .Values.restartPolicy .Values.iam.restartPolicy }}
+      {{- if .Values.iam.affinity }}
+      affinity:
+        {{ tpl .Values.iam.affinity . | nindent 8 | trim }}
+      {{- end }}
+      {{- if .Values.iam.tolerations }}
+      tolerations:
+        {{ tpl .Values.iam.tolerations . | nindent 8 | trim }}
+      {{- end }}
+      {{- include "seaweedfs.imagePullSecrets" . | nindent 6 }}
+      terminationGracePeriodSeconds: 60
+      {{- if .Values.iam.priorityClassName }}
+      priorityClassName: {{ .Values.iam.priorityClassName | quote }}
+      {{- end }}
+      enableServiceLinks: false
+      {{- if .Values.rbac.create }}
+      serviceAccountName: {{ .Values.iam.serviceAccountName | default .Values.serviceAccount.name | quote }}
+      {{- end }}
+      {{- if .Values.iam.initContainers }}
+      initContainers:
+        {{ tpl .Values.iam.initContainers . | nindent 8 | trim }}
+      {{- end }}
+      {{- if .Values.iam.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.iam.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: seaweedfs
+          image: {{ template "common.image" . }}
+          imagePullPolicy: {{ default "IfNotPresent" .Values.image.pullPolicy }}
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- if .Values.iam.extraEnvVars }}
+            {{- range $key, $value := .Values.iam.extraEnvVars }}
+            - name: {{ $key }}
+            {{- if kindIs "string" $value }}
+              value: {{ $value | quote }}
+            {{- else }}
+              valueFrom:
+                {{ toYaml $value | nindent 16 | trim }}
+            {{- end -}}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.extraEnvVars }}
+            {{- range $key, $value := .Values.extraEnvVars }}
+            - name: {{ $key }}
+            {{- if kindIs "string" $value }}
+              value: {{ $value | quote }}
+            {{- else }}
+              valueFrom:
+                {{ toYaml $value | nindent 16 | trim }}
+            {{- end -}}
+            {{- end }}
+            {{- end }}
+          command:
+            - "/bin/sh"
+            - "-ec"
+            - |
+              exec /usr/bin/weed \
+              iam \
+              -port=8111 \
+              -ip=${POD_IP} \
+              {{- if .Values.master.enabled }}
+              -master={{ include "master.peers" . }} \
+              {{- end }}
+              {{- if .Values.filer.enabled }}
+              -filer={{ include "filer.peers" . }}
+              {{- end }}
+          ports:
+            - containerPort: 8111
+              name: swfs-iam
+          {{- with .Values.iam.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.iam.containerSecurityContext.enabled }}
+          securityContext: {{- omit .Values.iam.containerSecurityContext "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+        {{- if .Values.iam.sidecars }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.iam.sidecars "context" $) | nindent 8 }}
+        {{- end }}
+      {{- if .Values.iam.nodeSelector }}
+      nodeSelector:
+        {{- include "common.tplvalues.render" (dict "value" .Values.iam.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+{{- end }}
