@@ -87,8 +87,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: SEAWEEDFS_FULLNAME
-              value: "{{ template "seaweedfs.name" . }}"
             {{- if $volume.extraEnvVars }}
             {{- range $key, $value := $volume.extraEnvVars }}
             - name: {{ $key }}
@@ -155,7 +153,7 @@ spec:
               -max={{- range $idx, $disk := $volume.persistence.disks }}{{ if ne $idx 0 }},{{ end }}{{ $disk.max | default 0 }}{{ end }} \
               {{- end }}
               {{- if .Values.master.enabled }}
-              -mserver={{ range $index := until (.Values.master.replicas | int) }}${SEAWEEDFS_FULLNAME}-master-{{ $index }}.${SEAWEEDFS_FULLNAME}-master.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.master.replicas | int) 1) }},{{ end }} \{{ end }}
+              -mserver={{ include "master.peers" $ }}
               {{- end }}
               -ip=${POD_IP}
           volumeMounts:
@@ -316,6 +314,10 @@ spec:
         annotations:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        labels:
+        {{- with $.Values.commonLabels }}
+        {{- toYaml . | nindent 10 }}
+        {{- end }}
       spec:
         accessModes:
         {{- range $disk.accessModes | default (list "ReadWriteOnce") }}
@@ -340,6 +342,10 @@ spec:
         annotations:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        labels:
+        {{- with $.Values.commonLabels }}
+        {{- toYaml . | nindent 10 }}
+        {{- end }}
       spec:
         accessModes:
         {{- range $volume.persistence.idx.accessModes }}
@@ -362,6 +368,10 @@ spec:
         {{- with $logs.persistence.annotations }}
         annotations:
           {{- toYaml . | nindent 10 }}
+        {{- end }}
+        labels:
+        {{- with $.Values.commonLabels }}
+        {{- toYaml . | nindent 10 }}
         {{- end }}
       spec:
         accessModes:

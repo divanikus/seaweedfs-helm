@@ -1,5 +1,5 @@
 {{- $createBuckets := (coalesce (ternary .Values.s3.createBuckets "" .Values.s3.enabled) (ternary .Values.filer.s3.createBuckets "" (and .Values.filer.enabled .Values.filer.s3.enabled)) (ternary .Values.server.s3.createBuckets "" (and .Values.server.enabled .Values.server.s3.enabled)) | default dict) }}
-{{- if $createBuckets }}
+{{- if or $createBuckets .Values.iam.enabled }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -39,8 +39,18 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          - name: SEAWEEDFS_FULLNAME
-            value: "{{ template "seaweedfs.name" . }}"
+          {{- if .Values.iam.enabled }}
+          - name: ADMIN_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "seaweedfs.name" . }}-iam
+                key: admin-username
+          - name: ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "seaweedfs.name" . }}-iam
+                key: admin-password
+          {{- end }}
           {{- if .Values.extraEnvVars }}
           {{- range $key, $value := .Values.extraEnvVars }}
           - name: {{ $key }}
@@ -74,16 +84,34 @@ spec:
               echo "Service at $url failed to become ready within 5 minutes"
               exit 1
             }
-            wait_for_service "http://${WEED_CLUSTER_SW_MASTER:-seaweedfs-master:9333}/cluster/status"
-            wait_for_service "http://${WEED_CLUSTER_SW_FILER:-seaweedfs-filer-client:8888}"
+            wait_for_service "http://{{ include "master.svc" $ }}/cluster/status"
+            wait_for_service "http://{{ include "filer.svc" $ }}"
           {{- range $idx, $name := $createBuckets }}
             exec /bin/echo \
             "s3.bucket.create --name {{ $name.name }}" |\
             /usr/bin/weed shell \
-            {{- if $.Values.master.enabled }}
-            -master={{ range $index := until ($.Values.master.replicas | int) }}${SEAWEEDFS_FULLNAME}-master-{{ $index }}.${SEAWEEDFS_FULLNAME}-master.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.master.replicas | int) 1) }},{{ end }}{{ end }}
-            {{- else if $.Values.server.enabled }}
-            -master={{ range $index := until ($.Values.server.replicas | int) }}${SEAWEEDFS_FULLNAME}-server-{{ $index }}.${SEAWEEDFS_FULLNAME}-server.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.server.replicas | int) 1) }},{{ end }}{{ end }}
+            {{- if or ($.Values.master.enabled) ($.Values.server.enabled) }}
+            -master={{ include "master.peers" $ }}
+            {{- else }}
+
+            {{- end }}
+          {{- if $name.ttl }}
+            exec /bin/echo \
+            "fs.configure -locationPrefix=/buckets/{{ $name.name }} -ttl={{ $name.ttl }} -apply" |\
+            /usr/bin/weed shell \
+            {{- if or ($.Values.master.enabled) ($.Values.server.enabled) }}
+            -master={{ include "master.peers" $ }}
+            {{- else }}
+
+            {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.iam.enabled }}
+            exec /bin/echo \
+            "s3.configure -apply -user $ADMIN_USERNAME -access_key $ADMIN_USERNAME -secret_key $ADMIN_PASSWORD -actions Admin" |\
+            /usr/bin/weed shell \
+            {{- if or ($.Values.master.enabled) ($.Values.server.enabled) }}
+            -master={{ include "master.peers" $ }}
             {{- else }}
 
             {{- end }}

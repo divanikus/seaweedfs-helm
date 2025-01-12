@@ -1,6 +1,6 @@
 # seaweedfs
 
-![Version: 0.1.1](https://img.shields.io/badge/Version-0.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.80](https://img.shields.io/badge/AppVersion-3.80-informational?style=flat-square)
+![Version: 0.1.2](https://img.shields.io/badge/Version-0.1.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.81](https://img.shields.io/badge/AppVersion-3.81-informational?style=flat-square)
 
 SeaweedFS is a simple and highly scalable distributed file system.
 
@@ -40,6 +40,7 @@ helm install -f values-custom.yaml seaweedfs seaweedfs-helm
 * Made an ability to directly pass args to weed process within values.yaml. Should add lots of flexibility, though might be a little bit controversial. I'm a little confused if it is ok to do that.
 * Made it possible to have nodeSets with different settings/args for volume servers. You can specify settings in the global block and override it in a nodeSet.
 * [cross-cluster continuous synchronization](https://github.com/seaweedfs/seaweedfs/wiki/Filer-Active-Active-cross-cluster-continuous-synchronization) support.
+* Bucket TTL policy support.
 
 ### Prerequisites
 #### Database
@@ -84,12 +85,14 @@ filer:
 #### Create S3 buckets
 
 You may specify buckets to be created during the install process.
+You may optionally specify ttl policy for the bucket.
 
 ```yaml
 s3:
   enabled: true
   createBuckets:
     - name: bucket-a
+      ttl: 1d
     - name: bucket-b
 ```
 
@@ -133,6 +136,12 @@ filer:
     - -a seaweedfs-filer.seaweedfs.cluster1:8888
     - -b seaweedfs-filer.seaweedfs.cluster2:8888
     - -isActivePassive
+```
+
+### Enable [IAM gateway server](https://github.com/seaweedfs/seaweedfs/wiki/Amazon-IAM-API)
+```yaml
+iam:
+  enabled: true
 ```
 
 ## Values
@@ -230,6 +239,18 @@ filer:
 | filer.updateStrategy.rollingUpdate | object | `{}` |  |
 | filer.updateStrategy.type | string | `"RollingUpdate"` |  |
 | fullnameOverride | string | `""` |  |
+| iam.admin.password | string | `""` |  |
+| iam.admin.username | string | `"admin"` |  |
+| iam.affinity | object | `{}` |  |
+| iam.containerSecurityContext | object | `{}` |  |
+| iam.enabled | bool | `false` |  |
+| iam.nodeSelector | string | `"kubernetes.io/arch: amd64"` |  |
+| iam.podSecurityContext | object | `{}` |  |
+| iam.replicas | int | `1` |  |
+| iam.resources.limits | object | `{}` |  |
+| iam.resources.requests | object | `{}` |  |
+| iam.tolerations | object | `{}` |  |
+| iam.updateStrategy.type | string | `"Recreate"` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.pullSecrets | list | `[]` |  |
 | image.repository | string | `"chrislusf/seaweedfs"` |  |

@@ -77,8 +77,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: SEAWEEDFS_FULLNAME
-              value: "{{ template "seaweedfs.name" . }}"
             {{- if .Values.filer.extraEnvVars }}
             {{- range $key, $value := .Values.filer.extraEnvVars }}
             - name: {{ $key }}
@@ -133,7 +131,7 @@ spec:
               -s3.cert.file=/usr/local/share/ca-certificates/client/tls.crt \
               -s3.key.file=/usr/local/share/ca-certificates/client/tls.key \
               {{- end }}
-              {{- if .Values.filer.s3.auth.enabled }}
+              {{- if and (.Values.filer.s3.auth.enabled) (not .Values.iam.enabled) }}
               -s3.config=/etc/seaweedfs/s3/config.json \
               {{- end }}
               {{- if .Values.filer.s3.auditLogConfig }}
@@ -141,7 +139,7 @@ spec:
               {{- end }}
               {{- end }}
               {{- if .Values.master.enabled }}
-              -master={{ range $index := until (.Values.master.replicas | int) }}${SEAWEEDFS_FULLNAME}-master-{{ $index }}.${SEAWEEDFS_FULLNAME}-master.{{ $.Release.Namespace }}:9333{{ if lt $index (sub ($.Values.master.replicas | int) 1) }},{{ end }} \{{ end }}
+              -master={{ include "master.peers" $ }}
               {{- end }}
               -defaultStoreDir=/data
           volumeMounts:
@@ -151,7 +149,7 @@ spec:
             - name: logs
               mountPath: /logs
             {{- end }}
-            {{- if .Values.filer.config }}
+            {{- if or (.Values.filer.config) (.Values.filer.existingConfigSecret) }}
             - name: filer-config
               readOnly: true
               mountPath: /etc/seaweedfs/filer.toml
@@ -180,7 +178,7 @@ spec:
               mountPath: /usr/local/share/ca-certificates/client/
             {{- end }}
             {{- end }}
-            {{- if and .Values.filer.s3.enabled .Values.filer.s3.auth.enabled }}
+            {{- if and .Values.filer.s3.enabled .Values.filer.s3.auth.enabled (not .Values.iam.enabled) }}
             - name: config-users
               mountPath: /etc/seaweedfs/s3/
               readOnly: true
@@ -252,10 +250,14 @@ spec:
           persistentVolumeClaim:
             claimName: {{ .Values.filer.persistence.existingClaim }}
         {{- end }}
-        {{- if .Values.filer.config }}
+        {{- if or (.Values.filer.config) (.Values.filer.existingConfigSecret) }}
         - name: filer-config
           secret:
+            {{- if .Values.filer.existingConfigSecret }}
+            secretName: {{ .Values.filer.existingConfigSecret }}
+            {{- else }}
             secretName: {{ template "seaweedfs.name" . }}-filer-config
+            {{- end }}
         {{- end }}
         {{- if .Values.security.enabled }}
         - name: security-config
@@ -279,7 +281,7 @@ spec:
             secretName: {{ template "seaweedfs.name" . }}-client-cert
         {{- end }}
         {{- end }}
-        {{- if and .Values.filer.s3.enabled .Values.filer.s3.auth.enabled }}
+        {{- if and .Values.filer.s3.enabled .Values.filer.s3.auth.enabled (not .Values.iam.enabled) }}
         - name: config-users
           secret:
             defaultMode: 420
@@ -306,6 +308,10 @@ spec:
         annotations:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        labels:
+        {{- with $.Values.commonLabels }}
+        {{- toYaml . | nindent 10 }}
+        {{- end }}
       spec:
         accessModes:
         {{- range .Values.filer.persistence.accessModes }}
@@ -328,6 +334,10 @@ spec:
         {{- with .Values.filer.logs.persistence.annotations }}
         annotations:
           {{- toYaml . | nindent 10 }}
+        {{- end }}
+        labels:
+        {{- with $.Values.commonLabels }}
+        {{- toYaml . | nindent 10 }}
         {{- end }}
       spec:
         accessModes:

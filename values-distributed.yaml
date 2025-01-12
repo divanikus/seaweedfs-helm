@@ -14,7 +14,7 @@ volume:
     replicas: 1
     args:
       rack: hdd-rack
-  
+
     persistence:
       enabled: true
       disks:
@@ -25,3 +25,10 @@ volume:
         accessModes:
           - ReadWriteOnce
         size: 50Gi
+
+# You may specify buckets with ttl policy to be created during the install process
+#s3:
+#  createBuckets:
+#  - name: bucket-a
+#    ttl: 1d
+#  - name: bucket-b

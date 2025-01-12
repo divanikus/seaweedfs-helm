@@ -177,3 +177,51 @@ Usage:
     {{- $value }}
 {{- end }}
 {{- end -}}
+
+{{/* Renders the master peers */}}
+{{- define "master.peers" -}}
+{{- if or (.Values.master.enabled) (.Values.server.enabled) }}
+{{- if and .Values.master.replicas (gt (int .Values.master.replicas) 0) }}
+{{- $master_srv := ternary "server" "master" (.Values.server.enabled | default false) }}
+{{- $peer := list }}
+{{- range $index := until (int .Values.master.replicas) }}
+{{- $peer = append $peer (printf "%s-%s-%d.%s-%s.%s:%d" (include "seaweedfs.name" $) $master_srv $index (include "seaweedfs.name" $) $master_srv $.Release.Namespace 9333) }}
+{{- end }}
+{{- $peers := join "," $peer }}
+{{- $peers }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{/* Renders the filer peers */}}
+{{- define "filer.peers" -}}
+{{- if .Values.filer.enabled }}
+{{- if and .Values.filer.replicas (gt (int .Values.filer.replicas) 0) }}
+{{- $peer := list }}
+{{- range $index := until (int .Values.filer.replicas) }}
+{{- $peer = append $peer (printf "%s-%s-%d.%s-%s.%s:%d" (include "seaweedfs.name" $) "filer" $index (include "seaweedfs.name" $) "filer" $.Release.Namespace 8888) }}
+{{- end }}
+{{- $peers := join "," $peer }}
+{{- $peers }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{/* Renders the master service */}}
+{{- define "master.svc" -}}
+{{- $master_srv := ternary "server" "master" (.Values.server.enabled | default false) }}
+{{- $master_svc := printf "%s-%s.%s:%d" (include "seaweedfs.name" .) $master_srv .Release.Namespace 9333 }}
+{{- $master_svc }}
+{{- end -}}
+
+{{/* Renders the filer service */}}
+{{- define "filer.svc" -}}
+{{- $filer_svc := printf "%s-%s.%s:%d" (include "seaweedfs.name" .) "filer-client" .Release.Namespace 8888 }}
+{{- $filer_svc }}
+{{- end -}}
+
+{{/* Renders the iam service */}}
+{{- define "iam.svc" -}}
+{{- $iam_svc := printf "%s-%s.%s:%d" (include "seaweedfs.name" .) "iam" .Release.Namespace 8111 }}
+{{- $iam_svc }}
+{{- end -}}

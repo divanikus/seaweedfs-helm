@@ -7,6 +7,7 @@ metadata:
   labels:
     {{- include "seaweedfs.labels" . | nindent 4 }}
     app.kubernetes.io/component: s3
+  annotations: {{- toYaml .Values.s3.annotations | nindent 4 }}
 spec:
   replicas: {{ .Values.s3.replicas }}
   strategy: {{- toYaml .Values.s3.updateStrategy | nindent 4 }}
@@ -75,8 +76,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: SEAWEEDFS_FULLNAME
-              value: "{{ template "seaweedfs.name" . }}"
             {{- if .Values.s3.extraEnvVars }}
             {{- range $key, $value := .Values.s3.extraEnvVars }}
             - name: {{ $key }}
@@ -125,7 +124,7 @@ spec:
               -cert.file=/usr/local/share/ca-certificates/client/tls.crt \
               -key.file=/usr/local/share/ca-certificates/client/tls.key \
               {{- end }}
-              {{- if .Values.s3.auth.enabled }}
+              {{- if and .Values.s3.auth.enabled (not .Values.iam.enabled) }}
               -config=/etc/seaweedfs/s3/config.json \
               {{- end }}
               {{- if .Values.s3.auditLogConfig }}
@@ -160,7 +159,7 @@ spec:
               mountPath: /usr/local/share/ca-certificates/client/
             {{- end }}
             {{- end }}
-            {{- if .Values.s3.auth.enabled }}
+            {{- if and .Values.s3.auth.enabled (not .Values.iam.enabled) }}
             - name: config-users
               mountPath: /etc/seaweedfs/s3/
               readOnly: true
@@ -240,7 +239,7 @@ spec:
             secretName: {{ template "seaweedfs.name" . }}-client-cert
         {{- end }}
         {{- end }}
-        {{- if and .Values.s3.enabled .Values.s3.auth.enabled }}
+        {{- if and .Values.s3.enabled .Values.s3.auth.enabled (not .Values.iam.enabled) }}
         - name: config-users
           secret:
             defaultMode: 420

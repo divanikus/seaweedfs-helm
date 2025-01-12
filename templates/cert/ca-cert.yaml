@@ -1,5 +1,5 @@
-{{- if and .Values.security.enabled}}
-{{- if and .Values.security.tls.enabled (not .Values.security.tls.externalCertificates.enabled)}}
+{{- if and .Values.security.enabled }}
+{{- if and .Values.security.tls.enabled (not .Values.security.tls.externalCertificates.enabled) }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

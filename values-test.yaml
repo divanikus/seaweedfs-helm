@@ -50,9 +50,9 @@ security:
       enabled: false
 
 metrics:
-  enabled: false
+  enabled: true
   serviceMonitor:
-    enabled: false
+    enabled: true
     interval: 30s
     scrapeTimeout: 5s
     labels: {}
@@ -60,8 +60,8 @@ metrics:
     enabled: false
 
 master:
-  enabled: false
-  replicas: 1
+  enabled: true
+  replicas: 3
   args:
     ip.bind: "0.0.0.0"
     volumePreallocate: false
@@ -169,7 +169,7 @@ master:
     tls: []
 
 filer:
-  enabled: false
+  enabled: true
   replicas: 1
   args:
     defaultReplicaPlacement: "000"
@@ -321,7 +321,7 @@ filer:
       kubernetes.io/arch: amd64
 
 volume:
-  enabled: false
+  enabled: true
 
   args:
     dataCenter: dc1
@@ -418,8 +418,8 @@ volume:
     timeoutSeconds: 30
 
 s3:
-  enabled: false
-  replicas: 1
+  enabled: true
+  replicas: 3
 
   args:
     ip.bind: "0.0.0.0"
@@ -530,9 +530,8 @@ s3:
   #   ttl: 1d
   # - name: bucket-b
 
-# enable IAM gateway server
 iam:
-  enabled: false
+  enabled: true
   replicas: 1
   admin:
     username: admin
