@@ -2,7 +2,7 @@ apiVersion: v2
 name: seaweedfs
 description: SeaweedFS is a simple and highly scalable distributed file system.
 type: application
-version: 0.1.2
+version: 0.1.3
 appVersion: "3.85"
 maintainers:
   - name: Andrey P.
