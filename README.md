@@ -1,6 +1,6 @@
 # seaweedfs
 
-![Version: 0.1.3](https://img.shields.io/badge/Version-0.1.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.85](https://img.shields.io/badge/AppVersion-3.85-informational?style=flat-square)
+![Version: 0.1.4](https://img.shields.io/badge/Version-0.1.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.85](https://img.shields.io/badge/AppVersion-3.85-informational?style=flat-square)
 
 SeaweedFS is a simple and highly scalable distributed file system.
 
@@ -176,6 +176,8 @@ iam:
 | filer.ingress.className | string | `""` |  |
 | filer.ingress.enabled | bool | `false` |  |
 | filer.ingress.host | string | `"seaweedfs.cluster.local"` |  |
+| filer.ingress.pathType | string | `"ImplementationSpecific"` |  |
+| filer.ingress.tls | list | `[]` |  |
 | filer.initContainers | list | `[]` |  |
 | filer.livenessProbe.enabled | bool | `true` |  |
 | filer.livenessProbe.failureThreshold | int | `5` |  |
@@ -224,6 +226,7 @@ iam:
 | filer.s3.ingress.className | string | `""` |  |
 | filer.s3.ingress.enabled | bool | `false` |  |
 | filer.s3.ingress.host | string | `"seaweedfs.cluster.local"` |  |
+| filer.s3.ingress.pathType | string | `"ImplementationSpecific"` |  |
 | filer.s3.ingress.tls | list | `[]` |  |
 | filer.s3.onlyHttps | bool | `false` |  |
 | filer.serviceAccountName | string | `""` |  |
@@ -271,6 +274,7 @@ iam:
 | master.ingress.className | string | `""` |  |
 | master.ingress.enabled | bool | `false` |  |
 | master.ingress.host | string | `"master.seaweedfs.local"` |  |
+| master.ingress.pathType | string | `"ImplementationSpecific"` |  |
 | master.ingress.tls | list | `[]` |  |
 | master.initContainers | list | `[]` |  |
 | master.livenessProbe.enabled | bool | `true` |  |
@@ -340,6 +344,7 @@ iam:
 | s3.ingress.className | string | `""` |  |
 | s3.ingress.enabled | bool | `false` |  |
 | s3.ingress.host | string | `"seaweedfs.cluster.local"` |  |
+| s3.ingress.pathType | string | `"ImplementationSpecific"` |  |
 | s3.ingress.tls | list | `[]` |  |
 | s3.initContainers | list | `[]` |  |
 | s3.internalTrafficPolicy | string | `"Cluster"` |  |
@@ -404,6 +409,7 @@ iam:
 | server.filer.ingress.className | string | `""` |  |
 | server.filer.ingress.enabled | bool | `false` |  |
 | server.filer.ingress.host | string | `"filer.seaweedfs.local"` |  |
+| server.filer.ingress.pathType | string | `"ImplementationSpecific"` |  |
 | server.filer.ingress.tls | list | `[]` |  |
 | server.initContainers | list | `[]` |  |
 | server.livenessProbe.enabled | bool | `true` |  |
@@ -429,6 +435,7 @@ iam:
 | server.master.ingress.className | string | `""` |  |
 | server.master.ingress.enabled | bool | `false` |  |
 | server.master.ingress.host | string | `"master.seaweedfs.local"` |  |
+| server.master.ingress.pathType | string | `"ImplementationSpecific"` |  |
 | server.master.ingress.tls | list | `[]` |  |
 | server.nodeSelector | string | `"kubernetes.io/arch: amd64"` |  |
 | server.persistence.accessModes[0] | string | `"ReadWriteOnce"` |  |
@@ -462,6 +469,7 @@ iam:
 | server.s3.ingress.className | string | `""` |  |
 | server.s3.ingress.enabled | bool | `false` |  |
 | server.s3.ingress.host | string | `"seaweedfs.cluster.local"` |  |
+| server.s3.ingress.pathType | string | `"ImplementationSpecific"` |  |
 | server.s3.ingress.tls | list | `[]` |  |
 | server.s3.onlyHttps | bool | `false` |  |
 | server.serviceAccountName | string | `""` |  |

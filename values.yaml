@@ -165,6 +165,7 @@ master:
     className: ""
     # host: false for "*" hostname
     host: "master.seaweedfs.local"
+    pathType: ImplementationSpecific
     annotations:  {}
     tls: []
 
@@ -268,7 +269,9 @@ filer:
     enabled: false
     className: ""
     host: "seaweedfs.cluster.local"
+    pathType: ImplementationSpecific
     annotations: {}
+    tls: []
 
   s3:
     enabled: false
@@ -306,6 +309,7 @@ filer:
       enabled: false
       className: ""
       host: "seaweedfs.cluster.local"
+      pathType: ImplementationSpecific
       annotations: {}
       tls: []
 
@@ -456,6 +460,7 @@ s3:
     enabled: false
     className: ""
     host: "seaweedfs.cluster.local"
+    pathType: ImplementationSpecific
     annotations: {}
     tls: []
 
@@ -575,6 +580,7 @@ server:
       className: ""
       # host: false for "*" hostname
       host: "master.seaweedfs.local"
+      pathType: ImplementationSpecific
       annotations:  {}
       tls: []
 
@@ -594,6 +600,7 @@ server:
       className: ""
       # host: false for "*" hostname
       host: "filer.seaweedfs.local"
+      pathType: ImplementationSpecific
       annotations:  {}
       tls: []
 
@@ -633,6 +640,7 @@ server:
       enabled: false
       className: ""
       host: "seaweedfs.cluster.local"
+      pathType: ImplementationSpecific
       annotations: {}
       tls: []
 
