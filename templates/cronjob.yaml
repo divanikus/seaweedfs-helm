@@ -1,0 +1,38 @@
+{{- if .Values.cronjob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: "{{ $.Release.Name }}-job"
+  labels:
+    {{- include "seaweedfs.labels" . | nindent 4 }}
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  concurrencyPolicy: Replace
+  schedule: {{ .Values.cronjob.schedule | quote }}
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            {{- toYaml .Values.commonLabels | nindent 12 }}
+        spec:
+          {{- include "seaweedfs.imagePullSecrets" . | nindent 10 }}
+          serviceAccountName: {{ .Values.serviceAccount.name }}
+          restartPolicy: Never
+          {{- if .Values.filer.podSecurityContext.enabled }}
+          securityContext: {{- omit (ternary .Values.server.podSecurityContext .Values.master.podSecurityContext .Values.server.enabled) . "enabled" | toYaml | nindent 8 }}
+          {{- end }}
+          containers:
+          - name: maintenance-job
+            image: {{ template "common.image" . }}
+            imagePullPolicy: {{ default "IfNotPresent" .Values.image.pullPolicy }}
+            command:
+              - "/bin/sh"
+              - "-ec"
+              - |
+                {{- toYaml .Values.cronjob.command | nindent 16 }} | \
+                /usr/bin/weed -v 1 shell -master={{ include "master.peers" . }}
+{{- end }}
