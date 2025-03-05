@@ -110,7 +110,7 @@ spec:
               -master={{ include "master.peers" . }} \
               {{- end }}
               {{- if .Values.filer.enabled }}
-              -filer={{ include "filer.peers" . }}
+              -filer={{ include "filer.svc" . }}
               {{- end }}
           ports:
             - containerPort: 8111
