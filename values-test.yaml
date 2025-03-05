@@ -6,12 +6,14 @@ image:
   repository: chrislusf/seaweedfs
   tag: ""
   pullPolicy: IfNotPresent
-  pullSecrets: []
+  pullSecrets:
+    - regcred
 
 nameOverride: ""
 fullnameOverride: ""
 
-commonLabels: {}
+commonLabels:
+  storage: seaweedfs
 commonAnnotations: {}
 
 rbac:
@@ -62,6 +64,7 @@ metrics:
 master:
   enabled: true
   replicas: 3
+  raftHashicorp: true
   args:
     ip.bind: "0.0.0.0"
     volumePreallocate: false
@@ -717,6 +720,9 @@ server:
     successThreshold: 2
     failureThreshold: 100
     timeoutSeconds: 10
+
+cronjob:
+  enabled: true
 
 cosi:
   enabled: false
