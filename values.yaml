@@ -554,6 +554,21 @@ iam:
   nodeSelector: |-
     kubernetes.io/arch: amd64
 
+cronjob:
+  enabled: false
+  schedule: "@daily"
+  # maintenance job
+  command:
+    /bin/echo
+    "lock;
+    volume.check.disk -v -force;
+    s3.clean.uploads -timeAgo=24h;
+    volume.deleteEmpty -force;
+    volume.fix.replication -volumesPerStep 3 -force;
+    volume.balance -collection EACH_COLLECTION -force;
+    volume.check.disk -v -force;
+    unlock"
+
 server:
   enabled: false
   replicas: 1

@@ -1,6 +1,6 @@
 # seaweedfs
 
-![Version: 0.1.4](https://img.shields.io/badge/Version-0.1.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.85](https://img.shields.io/badge/AppVersion-3.85-informational?style=flat-square)
+![Version: 0.1.5](https://img.shields.io/badge/Version-0.1.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.85](https://img.shields.io/badge/AppVersion-3.85-informational?style=flat-square)
 
 SeaweedFS is a simple and highly scalable distributed file system.
 
@@ -163,6 +163,9 @@ iam:
 | cosi.podSecurityContext | object | `{}` |  |
 | cosi.region | string | `""` |  |
 | cosi.sidecar.image | string | `"gcr.io/k8s-staging-sig-storage/objectstorage-sidecar/objectstorage-sidecar:v20230130-v0.1.0-24-gc0cf995"` |  |
+| cronjob.command | string | `"/bin/echo \"lock; volume.check.disk -v -force; s3.clean.uploads -timeAgo=24h; volume.deleteEmpty -force; volume.fix.replication -volumesPerStep 3 -force; volume.balance -collection EACH_COLLECTION -force; volume.check.disk -v -force; unlock\""` |  |
+| cronjob.enabled | bool | `false` |  |
+| cronjob.schedule | string | `"@daily"` |  |
 | extraEnvVars | list | `[]` |  |
 | filer.affinity | string | `"podAntiAffinity:\n  requiredDuringSchedulingIgnoredDuringExecution:\n    - labelSelector:\n        matchLabels:\n          app.kubernetes.io/name: {{ template \"seaweedfs.name\" . }}\n          app.kubernetes.io/instance: {{ .Release.Name }}\n          app.kubernetes.io/component: filer\n      topologyKey: kubernetes.io/hostname"` |  |
 | filer.args.defaultReplicaPlacement | string | `"000"` |  |
