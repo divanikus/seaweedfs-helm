@@ -62,8 +62,6 @@ metrics:
 master:
   enabled: false
   replicas: 1
-  # only for replicas => 3
-  raftHashicorp: false
   args:
     ip.bind: "0.0.0.0"
     volumePreallocate: false

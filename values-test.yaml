@@ -64,8 +64,8 @@ metrics:
 master:
   enabled: true
   replicas: 3
-  raftHashicorp: true
   args:
+    raftHashicorp: true
     ip.bind: "0.0.0.0"
     volumePreallocate: false
     volumeSizeLimitMB: 1000

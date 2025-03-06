@@ -308,7 +308,6 @@ iam:
 | master.podManagementPolicy | string | `"Parallel"` |  |
 | master.podSecurityContext | object | `{}` |  |
 | master.priorityClassName | string | `""` |  |
-| master.raftHashicorp | bool | `false` |  |
 | master.readinessProbe.enabled | bool | `true` |  |
 | master.readinessProbe.failureThreshold | int | `100` |  |
 | master.readinessProbe.initialDelaySeconds | int | `10` |  |
