@@ -33,6 +33,6 @@ spec:
               - "/bin/sh"
               - "-ec"
               - |
-                {{- toYaml .Values.cronjob.command | nindent 16 }} | \
+                {{- .Values.cronjob.command | nindent 16 }} | \
                 /usr/bin/weed -v 1 shell -master={{ include "master.peers" . }}
 {{- end }}
